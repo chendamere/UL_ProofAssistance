@@ -1,0 +1,314 @@
+
+\chapter{Rules of Operators}
+
+\section{Axioms of Operators}
+
+\subsection{swap axioms of operator}
+\subsubsection{id operator:}
+\[,i \Od m, i \Od n, \Rq ,i \Od n, i \Od m,\]
+
+\[,i \Od m, j \Od n, \Rq ,j \Od n, i \Od m,\]
+\[,i \Od m, j \Oc n, \Rq ,j \Oc n, i \Od m,\]
+\[,i \Od m, j \Ob n, \Rq ,j \Ob n, i \Od m,\]
+
+\[,i \Od m,  \Og n, \Rq , \Og n, i \Od m,\]
+\[,i \Od m,  \Ot n, \Rq , \Ot n, i \Od m,\]
+
+\[,i \Od m, j \On, \Rq , j \On, i \Od m,\]
+
+\[,i \Od m, j \Os, \Rq , j \Os, i \Od m,\]
+
+\[,i \Od m, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \Od m,}{,i \Od m,}\]
+
+
+
+
+
+\bigskip
+\subsubsection{copy operator:}
+\[,i \Oc m, j \Oc n, \Rq ,j \Oc n, i \Oc m,\]
+\[,i \Oc m, j \Ob n, \Rq ,j \Ob n, i \Oc m,\]
+
+\[,i \Oc m,  \Og n, \Rq , \Og n, i \Oc m,\]
+\[,i \Oc m,  \Ot n, \Rq , \Ot n, i \Oc m,\]
+
+\[,i \Oc m, j \On, \Rq , j \On, i \Oc m,\]
+
+\[,i \Oc m, j \Os, \Rq , j \Os, i \Oc m,\]
+
+\[,i \Oc m, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \Oc m,}{,i \Oc m,}\]
+
+
+
+\bigskip
+\subsubsection{subnode operator:}
+\[,i \Ob m, j \Ob n, \Rq ,j \Ob n, i \Ob m,\]
+
+\[,i \Ob m,  \Og n, \Rq , \Og n, i \Ob m,\]
+\[,i \Ob m,  \Ot n, \Rq , \Ot n, i \Ob m,\]
+
+\[,i \Ob m, j \On, \Rq , j \On, i \Ob m,\]
+
+\[,i \Ob m, j \Os, \Rq , j \Os, i \Ob m,\]
+
+\[,i \Ob m, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \Ob m,}{,i \Ob m,}\]
+
+\bigskip
+\subsubsection{temporary space operator:}
+\[, \Ot m,  \Ot n, \Rq , \Ot n, \Ot m,\]
+\[, \Ot m,  \Og n, \Rq , \Og n, \Ot m,\]
+
+\[, \Ot m, j \On, \Rq , j \On,  \Ot m,\]
+
+\[, \Ot m, j \Os, \Rq , j \Os,  \Ot m,\]
+
+\[, \Ot m, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{, \Ot m,}{, \Ot m,}\]
+
+
+\bigskip
+\subsubsection{global space operator:}
+\[, \Og m,  \Og n, \Rq , \Og n, \Og m,\]
+
+\[, \Og m, j \On, \Rq , j \On,  \Og m,\]
+
+\[, \Og m, j \Os, \Rq , j \Os,  \Og m,\]
+
+\[, \Og m, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{, \Og m,}{, \Og m,}\]
+
+
+\bigskip
+\subsubsection{next node operator:}
+
+\[,i \On, j \On, \Rq , j \On, i \On,\]
+
+\[,i \On, i \Op, \Rq , i \Op, i \On,\]
+
+\[,i \On, j \Os, \Rq , j \Os,i \On,\]
+
+\[,i \On, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \On,}{,i \On,}\]
+
+
+
+\bigskip
+\subsubsection{release operator:}
+
+\[,i \Os, j \Os, \Rq , j \Os,i \Os,\]
+
+\[,i \Os, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \Os,}{,i \Os,}\]
+\[,i \Os, \Blb{j \Oe j}{,}{,} \Rq , \Blb{j \Oe j}{,i \Os,}{,i \Os,}\]
+
+\bigskip
+\subsection{fundamental axioms of logic error operator}
+
+\[,\Or, \Rq ,\Or, \Tc code,\]
+
+
+\[,i \On, \Or, \Rq ,\Or,\]
+\[,i \Os, \Or, \Rq ,\Or,\]
+\[,i \Oa j, \Or, \Rq ,\Or,\]
+
+
+
+\bigskip
+\subsection{ fundamental axioms of equivalent comparison operator}
+
+\[\Brs{,}{,} ,\Tc c, \Rq \Brs{,\Tc c,}{,\Tc c,},\]
+
+\bigskip
+
+\[, \Blb{i \Oe i}{,}{,} \Rq , \Blb{i \Oe i}{,}{, \Or,}\]
+
+
+\bigskip
+
+\[, \Blb{i \Oe j}{,}{,} \Rq , \Blb{j \Oe i}{,}{,}\]
+
+
+\bigskip
+
+\[, \Bb{i \Oe j}{,\Tc c_1,}{,\Tc c_2,}, \Rq , \Bb{i \Oe j}{, \Bb{i \Oe j}{,\Tc c_1,}{,\Tc c_3,},}{,\Tc c_2,} ,\]
+
+\bigskip
+
+\[, \Bb{i \Oe j}{,\Tc c_1,}{,\Tc c_2,}, \Rq , \Bb{i \Oe j}{, \Tc c_1,}{,\Bb{i \Oe j}{,\Tc c_3,}{,\Tc c_2,},} ,\]
+
+
+\bigskip
+
+\[, \Blb{i \Oe j}{ \Blb{i \Oe m}{,}{,}}{,} \Rq , \Blb{i \Oe j}{, \Blb{j \Oe m}{,}{,}}{,} \]
+
+
+\bigskip
+\[, \Bb{i \Oe j}{,\Bb{m \Oe n}{,\Tc c_1,}{,\Tc c_2,},}{, \Bb{m \Oe n}{,\Tc c_3,}{,\Tc c_4,},}, \Rq ,  \Bb{m \Oe n}{,\Bb{i \Oe j}{,\Tc c_1,}{,\Tc c_3,},}{, \Bb{i \Oe j}{,\Tc c_2,}{,\Tc c_4,},},\]
+
+
+\bigskip
+\subsection{fundamental axioms of release operator}
+
+\[,i \On ,i \Os , \Rq ,i \Os,\]
+
+
+
+\bigskip
+\subsection{ axioms of creativity}
+
+\[, \Rq , \Bs{i \Oe j}{,}{,} ,\]
+
+\[, \Rq ,i \Oc m ,m \Os,\]
+\[, \Rq ,i \Od m ,m \Os,\]
+\[, \Rq ,i \Ob m ,m \Os,\]
+
+\[, \Rq ,\Og m ,m \Os,\]
+\[, \Rq ,\Ot m ,m \Os,\]
+
+
+\[, \Rq ,i \On ,i \Op,\]
+
+\[, \Rq , ,\]
+
+\newpage
+\section{Theorems of Operators}
+
+
+\subsection{theorems of previous node operator}
+
+\[,i \Od m, j \Op, \Rq , j \Op, i \Od m,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Od m, j \Op, \\\\
+\Rq, j \On, j \Op,i \Od m, j \Op, \\\\
+\Rq, j \Op, j \On,i \Od m, j \Op, \\\\
+\Rq, j \Op,i \Od m, j \On, j \Op, \\\\
+\Rq, j \Op,i \Od m,
+\end{math}
+\bigskip
+
+\[,i \Oc m, j \Op, \Rq , j \Op, i \Oc m,\]
+\[,i \Ob m, j \Op, \Rq , j \Op, i \Ob m,\]
+
+\[, \Og m, j \Op, \Rq , j \Op,  \Og m,\]
+\[, \Ot m, j \Op, \Rq , j \Op,  \Ot m,\]
+
+\[,i \On, j \Op, \Rq , j \Op, i \On,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \On, j \Op, \\\\
+\Rq, j \On, j \Op, i \On, j \Op, \\\\
+\Rq, j \Op, j \On, i \On, j \Op, \\\\
+\Rq, j \Op, i \On, j \On, j \Op, \\\\
+\Rq, j \Op, i \On,
+\end{math}
+\bigskip
+
+\[,i \Op, j \Op, \Rq , j \Op, i \Op,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Op, j \Op, \\\\
+\Rq, j \On, j \Op, i \Op, j \Op, \\\\
+\Rq, j \Op, j \On, i \Op, j \Op, \\\\
+\Rq, j \Op, i \Op, j \On, j \Op, \\\\
+\Rq, j \Op, i \Op,
+\end{math}
+\bigskip
+
+
+
+
+\[,i \Op, j \Os, \Rq , j \Os,i \Op,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Op, j \Os, \\\\
+\Rq, i \Op, j \Os, i \On, i \Op, \\\\
+\Rq, i \Op, i \On, j \Os,   i \Op, \\\\
+\Rq, i \On, i \Op, j \Os,  i \Op, \\\\
+\Rq, j \Os, i \Op,
+\end{math}
+\bigskip
+
+
+\[,i \Op, \Blb{j \Oe t}{,}{,} \Rq , \Blb{j \Oe t}{,i \Op,}{,i \Op,}\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Op, \Blb{j \Oe t}{,}{,} \\\\\\
+\Rq,i \Op, \Blb{j \Oe t}{,i \On, i \Op,}{,i \On, i \Op} \\\\\\
+\Rq,i \Op,i \On, \Blb{j \Oe t}{,i \Op,}{,i \Op,} \\\\\\
+\Rq,i \On,i \Op, \Blb{j \Oe t}{,i \Op,}{,i \Op,} \\\\\\
+\Rq,  \Blb{j \Oe t}{,i \Op,}{,i \Op,}
+\end{math}
+\bigskip
+
+
+\[,i \Op, i \Os, \Rq , i \Os,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Op, i \Os, \\\\
+\Rq,i \Op, i \On,i \Os, \\\\
+\Rq,i \On, i \Op,i \Os, \\\\
+\Rq, i \Os,
+\end{math}
+\bigskip
+
+
+
+
+\[,i \Op, \Or, \Rq ,\Or,\]
+
+\bigskip
+proof:\\
+\begin{math} 
+,i \Op, \Or, \\\\
+\Rq,i \Op, i \On, \Or, \\\\
+\Rq,i \On, i \Op, \Or, \\\\
+\Rq, \Or,
+\end{math}
+\bigskip
+
+
+\subsection{theorems of logic error operator}
+
+\[, \Or, \Rq , \Or, \Or,\]
+
+
+\[\Brs{,\Tc c,}{,\Or,} , \Rq \Brs{,}{,\Or,},\Tc c,\]
+\bigskip
+proof:\\
+\begin{math} 
+ \Brs{,\Tc c,}{,\Or,} ,\\\\
+\Rq \Brs{,\Tc c,}{,\Or,\Tc c,} , \\\\
+\Rq \Brs{,}{,\Or,} ,\Tc c,
+\end{math}
+\bigskip
+
+
+
+\[\Brs{,\Or,} {,\Tc c,}, \Rq \Brs{,\Or,}{,},\Tc c,\]
+
+
+\[,i \Oc t, \Or, \Rq ,\Or,\]
+\bigskip
+proof:\\
+\begin{math} 
+,i \Oc t, \Or,\\\\
+\Rq ,i \Oc t,  t \Os, \Or, \\\\
+\Rq ,\Or,
+\end{math}
+\bigskip
+
+
+\[,i \Od t, \Or, \Rq ,\Or,\]
+\[,i \Ob t, \Or, \Rq ,\Or,\]
+
+\[, \Og i, \Or, \Rq ,\Or,\]
+\[, \Ot i, \Or, \Rq ,\Or,\]
+
+
+
+\newpage
+
+
