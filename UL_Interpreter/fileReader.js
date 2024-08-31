@@ -12,7 +12,7 @@ export const ReadFiles = Parse_rules_and_titles =>( folder, flag) => {
 }
 
 const ParseFile = (Parse_rules_and_titles , folder, Filereader, file, flag) => {
-    const s = Filereader(folder + '/' + file, {encoding: "utf8"})
+    const s = Filereader(folder + '/'+file, {encoding: "utf8"})
     //parse characters into array of lines
     let lines = Files_to_lines(s)
     let chapter = Parse_rules_and_titles(lines, flag)

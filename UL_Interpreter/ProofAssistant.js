@@ -259,188 +259,74 @@ class ProofAssistant {
         return sl
     }
 
-    Proving(start, end) {
-        let prev = this.ExpToString(start)
-        let maxStep = 100
-        let count = 0
-        let input = ''
-        let parsed_newrule = {rightexps:[]} 
-        let ProofComplete = false
+    Proving(start, e) {
 
-        let ret = 0
-        //try all exps
-        while(!this.Same(parsed_newrule.rightexps, end) & count < maxStep){
-            // console.log('next: ', this.RuleToString(parsed_newrule))
+        //operands are not binded yet
+        // console.log('start: ', start, 'end: ', e)
+        let r = (this.genRule('!'+start+'@'+e+'\n')[0])
 
-            console.log('----------------------')
-            let matchExp = false
-            let proof_inc = ret
-            ret += 1
-
-            
-            //convert current expression operand order to match the end expression
-            console.log('next: ', this.ExpToString(parsed_newrule.rightexps))
-
-            if(this.try_match_operand_order(parsed_newrule)){
-                console.log('done: ', this.RuleToString(parsed_newrule))
-                return true
-            }
-            
-
-            if(ProofComplete){
-                return true
-            }
-
-            // console.log('next: ', this.ExpToString(parsed_newrule.rightexps))
-
-
-            //search for proofs
-            let foundExp = false
-            // console.log(this.Exps.length)
-            while(proof_inc < this.Exps.length)
-            {
-                let Exp = this.Exps[proof_inc]
-
-                //loop through all similar expressions
-                let relatedExps = this.Generate_sim_exps(Exp)
-                proof_inc += 1
-
-                console.log(relatedExps, Exp)
-
-                let ri = 0
-                if(foundExp) {
-                    console.log('6')
-
-                    break
-                }
-                while(ri < relatedExps.length) {
-                    let exp = relatedExps[ri]
-
-                    // console.log(exp)
-                    if(matchExp) {
-                        console.log('4')
-
-                        foundExp = true
-                        break
-                    }
-
-                    if(this.Same(parsed_newrule.rightexps, end)){
-                        foundExp = true
-                        console.log('5')
-
-                        break
-                    }
-
-                    input = exp
-                    // console.log(input)
-                    let newrule = '! ' + prev + ' @ ' + input + '\n'
-                    // console.log(newrule, proof_inc, this.MoreExps.length, input)
-
-
-                    parsed_newrule = this.genRule(newrule)[0]
-
-                    console.log(this.RuleToString(parsed_newrule))
-
-                    //done
-                    if(this.Same(parsed_newrule.leftexps, parsed_newrule.rightexps) && this.Same(parsed_newrule.leftexps, end)){
-                        if(this.Same(parsed_newrule.rightexps, end)){
-                            console.log('end')
-                            ProofComplete = true
-                            foundExp = true
-
-                            break
-                        }
-                        else{
-                            console.log('skip used exps: ', prev)
-                            ri += 1
-                            continue
-                        }
-                    }
-
-                    // console.log('first try: ', this.RuleToString(parsed_newrule))
-
-                    if(this.isRule(parsed_newrule)){
-                        prev = input
-                        console.log('1')
-                        foundExp = true
-
-                        break
-                    }
-
-                    if(this.trim_and_check(parsed_newrule)){
-                        prev = input
-                        foundExp = true
-                        console.log('2')
-
-                        break
-                        
-                    }
-                    else{
-
-
-                        let max = this.getmax(parsed_newrule.leftexps)
-                        let opcounter = 0
-                        let found_next = false
-                        //try different operands
-                        while(opcounter < max){
-                            opcounter += 1
-                            let tempexp = this.ExpToString(this.incOperands((parsed_newrule.rightexps)))
-                            let tr = '! ' + prev + ' @ ' + tempexp + '\n'
-                            let parsed_tr = this.genRule(tr)[0]
-                            // console.log('incr operands: ', this.RuleToString(parsed_tr))
-                            if(this.Same(parsed_tr.leftexps, parsed_tr.rightexps) && this.Same(parsed_tr.leftexps, end)){
-                                console.log('done: ', this.RuleToString(parsed_newrule))
-
-                                return true
-                            }
-                            
-                            if( this.Same(parsed_tr.left, parsed_tr.right) && ! this.Same(parsed_trimrule, end)) {
-                                ri += 1
-                                console.log('7')
-
-                                continue
-                            }
-                            // console.log('try: ', this.RuleToString(parsed_tr))
-
-                            //trim
-                            if(this.trim_and_check(parsed_tr)){
-                                prev = tempexp
-                                parsed_newrule = parsed_tr
-                                console.log('valid construction: ', this.RuleToString(parsed_newrule))
-                                found_next = true
-                                foundExp = true
-
-                                break
-                            }
-                        }
-                        if(found_next){
-                            // console.log(found_next)
-                            foundExp = true
-                            console.log('8')
-
-                            break
-                        }
-                    }
-
-                    ri += 1
-                }
-            }
-            console.log('outer loop')
-            count += 1
-            
-        }
-
-
+        //bind operands to one of the variant
+        let rvariant = this.try_match_operand_order(r)
         
-        if(count > maxStep) console.log('reached max step!')
-        else{
-            console.log('-----------')
-            console.log('proof complete!')
+        for( const v of rvariant){
+            if(!this.isRule(v)){
+                
+                let rules = this.trim_and_check(v)
+                let check = -1
+                let i =0
+                while(i < rules.length){
+                    if(rules[i] != -1)
+                    {
+                        // console.log('fds',this.RuleToString(rules[i] ))
+                        check =rules[i]
+                    }
+                    i+=1
+                }
+
+                // console.log('rules: ', rules)
+                if (check != -1){
+
+                    // console.log('next', this.ExpToString(v.rightexps))
+                    return [this.ExpToString(v.rightexps), this.rule_to_mldata(check)]
+                }
+            }
+            else{
+                //return symbol contained in statement used in production rule
+                return [v, this.rule_to_mldata(v)]
+            }
         }
-        return true
+        // console.log('no matching production')
+
+        return -1
     }
 
-    //right matching left
+
+    rule_to_mldata(r){
+        let rr = r.rightexps
+        let rl = r.leftexps
+        // console.log(rr, rl)
+        const ret = []
+
+        ret.push('')
+        for(const e of rr){
+            if(!e.operator) continue
+
+            let d = e.operator.value.trim()
+            if(!ret.includes(d))
+                ret.push(d)
+        }
+        for(const e of rl){
+            if(!e.operator) continue
+
+            let d = e.operator.value.trim()
+            if(!ret.includes(d))
+                ret.push(d)
+        }
+        return ret
+    } 
+    
+
+    //return all different configuration of operands opdering 
     try_match_operand_order(parsed_newrule) {
 
         // if(!parsed_newrule) return false
@@ -450,7 +336,8 @@ class ProofAssistant {
 
         let endmax = this.getmax(tar)
         let endmaxcounter= 0
-
+        let ret = []
+        ret.push(parsed_newrule)
         while(endmaxcounter < endmax){
             if(tar.length == 0) break
 
@@ -462,27 +349,63 @@ class ProofAssistant {
             // console.log('t:  ',parsed_tr)
 
             // console.log('incr operands: ', this.RuleToString(parsed_tr))
-            if(this.Same(parsed_tr.leftexps, parsed_tr.rightexps)){
-                
-                return true
-            }
+            ret.push(parsed_tr)
             
             endmaxcounter += 1
         }
-
-        return false
+        // console.log(ret)
+        return ret
     }
 
     trim_and_check(parsed_newrule) {
+
+        //when trimming rule we need to record the branch Opparam is trimmed, any
+        //after production, we need to go to the last branch operation and revise the end offsets 
+        //end offsets are length of new expression.
+        //need to keep track of bottom of top offset
+
+        //alternatively, trim like normal, and trim twice again for bottom and top expressions.
+
+        //need to trim #14 to left branch and right branch
+
+
+
         //trimming will allow any rule that have same left and right to return true
         let [trimLong, trimShort] = this.Trim(parsed_newrule)
+
+        // console.log(this.RuleToString(parsed_newrule), bri, brj)
+
+        // console.log('trim: ',this.ExpToString(trimShort), this.ExpToString(trimLong))
         let trimrule = '! ' + this.ExpToString(trimShort) + ' @ ' + this.ExpToString(trimLong) + '\n'
         let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule)[0])
 
-        if(this.isRule(parsed_trimrule) ) {            
-            return true  
+        // console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
+
+        console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule))
+
+        let ret =[]
+
+        if(this.isRule(parsed_trimrule)){
+            ret.push(parsed_trimrule)
         }
-        return false
+        else{
+            let trimbr = this.TrimBranch(parsed_newrule)
+            console.log('trimbr:', this.RuleToString(trimbr[0]), this.RuleToString(trimbr[1]))
+            // if(trimbr[0] != -1){
+            //     ret.push(trimbr[0])
+            // }
+            // if(trimbr[1] != -1){
+            //     ret.push(trimbr[1])
+            // }
+            ret.push(trimbr[0])
+            ret.push(trimbr[1])
+            if(ret.length == 0)ret.push(-1)
+
+            let TrimAgain = this.TrimAgain(parsed_newrule)
+
+        }
+        
+        return ret
     }
 
     getmax(exps){
@@ -546,49 +469,12 @@ class ProofAssistant {
 
     }
 
-    InteractiveProving(start, end) {
-        let prompt = require("prompt-sync")({ sigint: true });
-        let prev = this.ExpToString(start)
-        let maxStep = 1000
-        let count = 0
-        let input = ''
-        let parsed_newrule = {rightexps:[]} 
-        while(!this.Same(parsed_newrule.rightexps, end) && (count < maxStep))
-        {
-            input = prompt("enter a expression: ");
-
-            let newrule = '! ' + prev + ' @ ' + input + '\n'
-            parsed_newrule = this.genRule(newrule)[0]
-
-            //trim
-            let [trimLong, trimShort] = this.Trim(parsed_newrule)
-            let trimrule = '! ' + this.ExpToString(trimShort) + ' @ ' + this.ExpToString(trimLong) + '\n'
-            let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule)[0])
-
-            // console.log('parsed_trimrule: ', parsed_trimrule)
-            console.log('string_trimrule: ', this.RuleToString(parsed_trimrule) )
-
-            if(!this.isRule(parsed_trimrule)) {
-                console.log("not in database: ", this.RuleToString(parsed_trimrule))
-            }
-            prev = input
-            console.log('newrule: ', this.RuleToString(parsed_newrule))
-            count += 1
-        }
-        console.log('proof complete!')
-        if(count> maxStep) console.log('reached max step!')
-        return true
-    }
-
 
     //return the longest string that is different and between two strings
     //same thing as maximizing the length of left and right 
 
     Trim(parsed_newrule) {
-        //old exps
         let pleft = parsed_newrule.leftexps
-
-        //new exps
         let pright = parsed_newrule.rightexps
 
         let longer = pleft 
@@ -597,52 +483,240 @@ class ProofAssistant {
             shorter = pleft 
             longer = pright
         }
-
-        let i = longer.length - 1
-        let j = shorter.length - 1
-        // console.log(shorter)
-        while(i > 0 && j >= 0){
-            
-            if(this.Same([longer[i]], [shorter[j]] )){
-                i = i - 1
-                if(j > 0)
-                    j = j - 1
-            }
-            else{
-                break
-            }
-        }
-
-        //edge case for evaluating when i=0
-
-        let endi = i + 1
-
-        //edge case when end
-        let endj = j + 1
-        i = 0
-        j = 0
-
-        while(i < endi && j < endj) {
+        let i = 0
+        let j = 0
+        while(i < longer.length && j < shorter.length) {
             if(this.Same([longer[i]],[shorter[j]])){
-
                 i = i + 1
                 j = j + 1
             }
             else{
                 break
             }
+
         }
 
-        //edge case
-        if(j == 0 && endj == 1) endj = 0
+        //look for last Opparam, when trimming end trim, if in range, compare top and bot expression
+        // let lll = 0
+        // let lastrt =0 
+        // let lastrb = 0
+        // let llr = 0
+        // let lastlt =0 
+        // let lastlb = 0
+        // while(i < longer.length) {
 
-        let trimLong = longer.slice(i, endi)
-        let trimShort = shorter.slice(j, endj)
-        if(trimLong.length == 0) trimLong = [{value:''}]
-        if(trimShort.length == 0) trimShort = [{value:''}]
+        //     if (longer[i].Opparam){
+        //         if(!longer[i].Opparam.value){
+        //             if(longer[i].Opparam[0]){
+        //                 // console.log(longer[i].Opparam[0])
+        //                 if(longer[i].Opparam[0].value == '#13' || longer[i].Opparam[0].value == '#13' ){
+        //                     lastrt = longer[i].Opparam[1].value
+        //                     lastrb = longer[i].Opparam[2].value
+        //                     lll = i
+        //                 }
+        //             }
+                    
+        //         }
+        //     }
+        //     i += 1
+        // }
+        // i = j
+        // while(j < shorter.length) {
+
+        //     if (shorter[j].Opparam){
+        //         if(!shorter[j].Opparam.value){
+        //             if(shorter[j].Opparam[0]){
+        //                 // console.log(longer[i].Opparam[0])
+        //                 if(shorter[j].Opparam[0].value == '#13' || shorter[j].Opparam[0].value == '#13' ){
+        //                     lastlt = shorter[j].Opparam[1].value
+        //                     lastlb = shorter[j].Opparam[2].value
+        //                     llr = j
+        //                 }
+        //             }
+                    
+        //         }
+        //     }
+        //     j += 1
+        // }
+        // j = i
+
+        let endi = longer.length - 1
+        let endj = shorter.length - 1
+        // console.log()
+        while(endi > 0 && endj >= 0){
+
+            // if(endi <= llr+lastrt+lastrb){
+            //     //top
+            //     if(endi > llr+lastrt){
+
+            //     }else if(endi > llr){
+
+            //     }
+            // }
+            if((this.Same([longer[endi]], [shorter[endj]] ))){
+                    endi = endi - 1
+                    endj = endj - 1
+            }
+            else{
+                break
+            }
+        }
 
 
-        return [trimLong, trimShort]
+        let trimLong = longer.slice(i, endi+1)
+        let trimShort = shorter.slice(j, endj+1)
+        let retLong = trimLong
+        let retShort = trimShort
+
+
+        let reti=i
+        let retj=j
+        if(trimLong.length == 0) trimLong = []
+        if(trimShort.length == 0) trimShort = []
+
+
+        while(i >= 0 && j >= 0){
+
+            let nr = this.genRule('!'+this.ExpToString(trimLong)+'@'+this.ExpToString(trimShort)+'\n')[0]
+            if(this.isRule(nr)){
+                    return [trimLong, trimShort]
+            }
+            else{
+                i-=1
+                j-=1
+                trimLong = longer.slice(i, endi+1)
+                trimShort = shorter.slice(j, endj+1)
+            }
+        }
+        i=reti
+        j=retj 
+
+        trimLong = retLong
+        trimShort = retShort
+        while(endi <= trimLong.length && endj <= trimShort.length){
+            let nr = this.genRule('!'+this.ExpToString(trimLong)+'@'+this.ExpToString(trimShort)+'\n')[0]
+
+            if(this.isRule(nr)){
+                return [trimLong, trimShort]
+            }
+            else{
+
+                endi+=1
+                endj+=1
+                trimLong = longer.slice(i, endi+1)
+                trimShort = shorter.slice(j, endj+1)
+            }
+        }
+
+
+        return [retLong, retShort]
+    }
+
+
+    //trim branch takes the last br operation found from left to right 
+    //and trim top and bottom expressions individuality
+    TrimBranch(parsed_newrule){
+        // console.log('here: ', parse)
+        let pleft = parsed_newrule.leftexps
+        let pright = parsed_newrule.rightexps
+        let longer = pleft 
+        let shorter = pright 
+        if(shorter.length > longer.length){
+            shorter = pleft 
+            longer = pright
+        }
+        let i = 0
+        let j = 0
+        let topi = i
+        let boti = i
+        let bri = {index : -1, next : {}, prev:-1, bot:longer.length, top:longer.length}
+        let brendi = longer.length
+        let topj = j
+        let botj = j
+        let brj = {index : -1, next : {}, prev:-1, bot:shorter.length, top:shorter.length}
+        let brendj = shorter.length
+        let checkbegin = false
+
+        while(i < longer.length ) {
+                if(i > brendi && bri.prev !=-1){
+                    //we are at the last branch level
+                    
+                    bri = bri.prev  
+                }
+
+                if(longer[i].Opparam && longer[i].Opparam.value != '')
+                {
+                    topi = parseInt(longer[i].Opparam[1].value.slice(1))
+                    boti = parseInt(longer[i].Opparam[2].value.slice(1))
+                    brendi = brendi.index+topi + boti
+                    bri.next = {index : i, next : {}, prev:bri , bot: boti, top:topi} 
+                    bri = bri.next
+                    checkbegin = true
+                    
+                    // console.log('opparam: ', lastbr,topi,boti)
+                }
+                else{
+                    // console.log(this.Same(shorter[i],longer[i]), shorter[i], longer[i])
+                    if(!shorter[i] || !longer[i]|| (!checkbegin && !this.Same(shorter[i],longer[i])) ){
+                        // console.log('here')
+
+                        break
+                    }
+                }
+                i = i + 1
+        }
+
+
+        while(j < shorter.length ) {
+
+            if(j > brendj&& brj.prev && brj.prev != -1){
+                //we are at the last branch level
+                brj = brj.prev  
+            }
+
+            if(shorter[j].Opparam && shorter[j].Opparam.value != '')
+            {
+                topj = parseInt(shorter[j].Opparam[1].value.slice(1))
+                botj = parseInt(shorter[j].Opparam[2].value.slice(1))
+                brendj = brendj.index+ topj + botj
+                brj.next = {index : j, next : {}, prev:brj , bot: botj, top:topj} 
+                brj = brj.next
+                // console.log('opparam: ', lastbr,topi,boti)
+            }
+            j = j + 1
+        }
+
+        //checking
+        // while(j < shorter.length){
+        //     if(!this.Same(shorter[j],longer[j])) return[-1,-1]
+        //     j += 1
+        // }
+
+        if(bri.index == -1 || brj.index == -1) return [-1,-1]
+        // console.log('ere: ',longer[bri.index].Opparam.value,longer[brj.index].Opparam.value)
+        if(longer[bri.index].Opparam.value != longer[brj.index].Opparam.value) return[-1,-1]
+
+        let topl=[], botl=[], topr=[], botr=[]
+        if(topi <= longer.length && topi != 0){
+            topl = longer.slice(bri.index+1, bri.index+topi+1)
+        }
+        if(boti <= longer.length&& boti != 0){
+            botl = longer.slice(bri.index+topi+1, bri.index+topi+boti+1)
+        }
+        if(topj <= shorter.length&& topj != 0){
+            topr = shorter.slice(brj.index+1, brj.index+topj+1)
+        }
+        if(botj <= shorter.length&& botj != 0){
+            botr = shorter.slice(brj.index+topi+1, brj.index+topj+botj+1)
+        }
+        // console.log('branch: ', this.ExpToString(topl), topi, bri.index ,' =? ',this.ExpToString(topr), topj,brj.index)
+        // console.log('branch: ', this.ExpToString(botl), boti, ' =? ',this.ExpToString(botr), botj)
+        // console.log()
+        let toprule = this.genRule('!'+this.ExpToString(topl)+'@'+this.ExpToString(topr)+'\n')[0]
+        let botrule = this.genRule('!'+this.ExpToString(botl)+'@'+this.ExpToString(botr)+'\n')[0]
+        // let rett = this.isRule(toprule) ? ( toprule.leftexps[0].operator ? toprule : -1) : -1
+        // let retb = this.isRule(botrule) ? ( botrule.leftexps[0].operator ? botrule : -1) : -1
+        return [toprule,botrule]
     }
 
     Operands_normalize(rule) {
@@ -670,14 +744,15 @@ class ProofAssistant {
                     let i = 0
                     while(i < ret_exp.operands.length){
                         let operand = ret_exp.operands[i].value
-
-                        if(temp_table[operand] == undefined){
-                            temp_table[operand] = offset 
-
-                            offset += 1
+                        if(operand){
+                            if(temp_table[operand] == undefined){
+                                temp_table[operand] = offset 
+    
+                                offset += 1
+                            }
+                            ret_exp.operands[i].value = String(temp_table[operand])
+                            operands.push(ret_exp.operands[i])
                         }
-                        ret_exp.operands[i].value = String(temp_table[operand])
-                        operands.push(ret_exp.operands[i])
                         i+=1
         
                     }
@@ -702,10 +777,10 @@ class ProofAssistant {
         return  left + '@ ' + right
     }
 
-    ExpToString(rule) {
+    ExpToString(exps) {
         let ret = ', '
-        if(!rule) return ret
-        for (const exp of rule){
+        if(!exps) return ret
+        for (const exp of exps){
             
             if(exp.Opparam && exp.Opparam.value != ''){
                 ret += exp.Opparam[0].value + ' ' + exp.Opparam[1].value +  ' ' +  exp.Opparam[2].value + ' '
@@ -807,9 +882,120 @@ class ProofAssistant {
         }
     }
 
-    //isRule checks if rule exist or its commutative form exists in the rule table
-    isRule(relation){
+    checkcv(l,r,rl,rr){
+        let left=l
+        let right = r
+        let rleft = rl
+        let rright = rr
+        let cvtable = {}
+        // console.log(this.ExpToString(rright))
+        // console.log(this.ExpToString(rleft),this.ExpToString(rright))
 
+        //check if expressions contain code variables
+        
+        let i = 0
+        let found = false 
+        let temp
+        let ti = 0
+        let retl= []
+        while (i < rleft.length){
+            let t1 = rleft[i]
+            let t2 = left[i]
+            if(t1.operator){
+                if (t1.operator.value == '#15' ){
+                    // console.log(rl,rr)
+                    if(!cvtable[t1.operands[ti].value]){
+                        cvtable[t1.operands[ti].value] = []
+                        temp = t1.operands[ti].value
+                    }
+                    else{
+                        ti += 1
+                    }
+                    found = true 
+                    i += 1
+                    
+                }
+                else{
+                    if(t2){
+                        if(!this.Same([t1],[t2])) return false
+                        retl.push(t1)
+                    }
+                }
+            }
+
+            if(found){
+                let j = i 
+                let t2 = left[j]
+                while(j < left.length ){
+                    t2 = left[j]
+                    // console.log(t1,t2)
+
+                    if(t2 && t1){
+                        // console.log(t1,t2)
+                        if(!this.Same([t1],[t2])){
+                            // console.log(cvtable[temp])
+                            cvtable[temp].push(t2)
+                            retl.push(t2)
+                        }
+                    }
+                    else{
+                        found = false
+                        break
+                    }
+                    j +=1
+                }
+            }
+            i += 1
+        }
+        // console.log(this.ExpToString(retl))
+        if(Object.keys(cvtable).length == 0) {
+            // console.log('back')
+            return false
+        }
+        // console.log(cvtable)
+        // for(var v in cvtable){
+        //     if (cvtable[v].length == 0) return false
+        // }
+
+        let x = 0
+        let retr =[]
+        while(x < rright.length){
+            
+            let t1 = rright[x]
+            // console.log(t1)
+
+            if(t1.operator){
+                if(t1.operator.value =='#15')
+                {
+                    // console.log(t1)
+                    if(cvtable[t1.operands[0].value]){
+                        // console.log(cvtable[t1.operands[0].value])
+                        for(const e of cvtable[t1.operands[0].value]){
+                            retr.push(e)
+                        }
+                    }
+                    
+                }
+                else{
+                    retr.push(t1)
+                }
+            }
+            x+=1
+        }            
+        // console.log(this.ExpToString(left),this.ExpToString(right))
+        // console.log(this.ExpToString(rleft),this.ExpToString(rright))
+        // console.log(this.ExpToString(right),this.ExpToString(retr))
+        if(this.Same(right,retr)) {
+            // console.log(this.ExpToString(right), '|',this.ExpToString(retr))
+            return true 
+        }
+        return false
+    }
+
+    //isRule checks if rule exist or its commutative form exists in the rule table
+    //code variables
+    isRule(relation){
+        // console.log('relation: ', this.RuleToString(relation))
         let left = relation.leftexps
         let right = relation.rightexps
         // console.log(left, right)
@@ -818,14 +1004,19 @@ class ProofAssistant {
         let i = 0
         for(const rule of this.allrules){
 
+
             let rleft = rule.leftexps
             let rright = rule.rightexps
-            // console.log('rleft: ', rleft, 'left: ', left)
-            // console.log('rright:', rright, 'right: ', right)
+            if(this.checkcv(left,right, rleft,rright)) return true
+            if(this.checkcv(left,right, rright,rleft)) return true
+            if(this.checkcv(right,left, rleft,rright)) return true
+            if(this.checkcv(right,left, rright,rleft)) return true
+
             //lengths dont match, next rule
             if(left.length != rleft.length && left.length != rright.length) continue
             if(right.length != rright.length && right.length != rleft.length) continue
-            
+
+            //if both statements have the same left and right, then check for operand equivalentce.
             if(this.Same(left, rleft) ) {
                 if(this.Same(right, rright)){
                     // found rule
@@ -839,12 +1030,164 @@ class ProofAssistant {
                     return true
                 }
             }
+            // console.log('match: ', this.RuleToString(relation), 'not applicable: ', this.RuleToString(rule), 'oprequiv: ', this.OperatorEquivalence(relation,rule), 'oprndsequiv: ', this.OperandEquivalence(relation,rule))
+            if(this.OperatorEquivalence(relation,rule) && this.OperandEquivalence(relation,rule)){
+                return true
+            }
 
             i += 1
-        }
-
+        }       
+        
         return false 
     }
+
+    OperatorEquivalence(srcstatement, tarstatement){
+        let srctablel = []
+        let srctabler = []
+
+        for (const e of srcstatement.leftexps){
+            // console.log(e)
+            if(e.operator){
+                if(e.Opparam){
+                    if(e.Opparam.value != '')
+                        {
+                        for(const v of e.Opparam){
+                            srctablel.push(v)
+                        }
+                    }
+                }
+                srctablel.push(e.operator.value)
+
+            }
+        }
+        for (const e of srcstatement.rightexps){
+            if(e.operator){
+                if(e.Opparam){
+                    if(e.Opparam.value != '')
+                    {
+                        for(const v of e.Opparam){
+                            srctablel.push(v)
+                        }
+                    }
+                }
+                srctabler.push(e.operator.value)
+
+            }
+        }
+
+        let tartablel = []
+        let tartabler = []
+
+        for (const e of tarstatement.leftexps){
+            if(e.operator){
+                if(e.Opparam){
+                    if(e.Opparam.value != '')
+                        {
+                        for(const v of e.Opparam){
+                            srctablel.push(v)
+                        }
+                    }
+                }
+                tartablel.push(e.operator.value)
+
+            }
+        }
+        for (const e of tarstatement.rightexps){
+            if(e.operator){
+                if(e.Opparam){
+                    if(e.Opparam.value != '')
+                        {
+                        for(const v of e.Opparam){
+                            srctablel.push(v)
+                        }
+                    }
+                }
+                tartabler.push(e.operator.value)
+
+            }
+        }
+        //checking
+
+        if(tartablel.length != srctablel.length && tartablel.length != srctabler.length ) return false
+        if(tartabler.length != srctablel.length && tartabler.length != srctabler.length ) return false
+
+        if(!(this.listequal(srctablel,tartablel) && this.listequal(srctabler,tartabler)) && !(this.listequal(srctabler,tartablel) && this.listequal(srctablel,tartabler))) return false
+
+        // console.log(srctablel,'@',srctabler,'|', tartablel,'@',tartabler)
+        return true
+    }
+
+    listequal(src,tar){
+        let i = 0
+        while(i<src.length){
+            if(src[i] != tar[i]){
+                return false
+            }
+            i+=1
+        }
+        return true
+    }
+    OperandEquivalence(srcstatement, tarstatement){
+        let srctable = []
+        for (const e of srcstatement.leftexps){
+            if(e.operands){
+                for(const opr of e.operands) {
+                    srctable.push(opr.value)
+                }
+            }
+        }
+        for (const e of srcstatement.rightexps){
+            if(e.operands){
+                for(const opr of e.operands) {
+                    srctable.push(opr.value)
+                }
+            }
+        }
+
+        let tartable = []
+        for (const e of tarstatement.leftexps){
+            if(e.operands){
+                for(const opr of e.operands) {
+                    tartable.push(opr.value)
+                }
+            }
+        }
+        for (const e of tarstatement.rightexps){
+            if(e.operands){
+                for(const opr of e.operands) {
+                    tartable.push(opr.value)
+                }
+            }
+        }
+
+        // console.log(srctable,tartable)
+        if(tartable.length != srctable.length) return false 
+
+        let sit = {}
+        let srt = []
+        let tit = {}
+        let trt=[]
+        let index = 1
+        for(const opr of srctable){
+            if(!sit[opr]){
+                sit[opr] = index 
+                index += 1
+            }
+            srt.push(sit[opr])
+        }
+        index = 1
+        for(const opr of tartable){
+            if(!tit[opr]){
+                tit[opr] = index 
+                index += 1
+            }
+            trt.push(tit[opr])
+        }
+
+
+        return this.listequal(srt,trt)
+    }
+
 
     Same(src,tar){
         if(!tar || !src) return false
@@ -858,13 +1201,37 @@ class ProofAssistant {
         else {
             while(i < src.length){
                 //check operator match
+                if(!src[i].operator|| !tar[i].operator) {
+                    if(src[i].value){
+                        if(tar[i].value){
+                            return src.value == tar[i].value
+                        }
+                    }
+                    return false
+                }
                 if(src[i].operator && tar[i].operator){
                     if(src[i].operator.value != tar[i].operator.value) {
                         // console.log(src[i].operator,tar[i].operator)
-                        
+                        //code variable
                         return false }
                 }
+                //check if Opparam match
                 
+                if(src[i].Opparam || tar[i].Opparam){
+                    if(!src[i].Opparam || !tar[i].Opparam) return false 
+
+                    if(src[i].Opparam.value == '' || src[i].Opparam.value == ''){
+                        if(src[i].Opparam.value != '' || src[i].Opparam.value != '')
+                            return false
+                    }
+                    
+                    if(src[i].Opparam[0]){
+                        if(tar[i].Opparam[0]){
+                            if(src[i].Opparam[0].value != tar[i].Opparam[0].value) return false
+                        }
+                    }
+
+                }
                 //edge case when exp has no type 
                 if(src[i].type || tar[i].type)
                 {

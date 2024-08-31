@@ -15,7 +15,7 @@ const parseTokens = tokens => {
         // We parse grammar until we have a next token.
 
         const statement = parseGrammar(reader);
-
+        // console.log(reader)
         if (statement) {
             // Our statement was parsed successfully,
             // so we add it to the list of statements.

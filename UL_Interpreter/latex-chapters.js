@@ -6,8 +6,8 @@ export const LatexChapters = (ReadFiles,  folder, parser) =>{
     return ParseRules(chapters,parser)
 }
 
-export const LatexExps = (ReadFiles, folder) => {
-    let chapters = ReadFiles(folder, true)
+export const LatexExps = (ReadFiles, folder,flag) => {
+    let chapters = ReadFiles(folder, flag)
     return ParseExps(chapters)
 }
 export const Parser = (AnalyseCode, ParseTokens) => pcode => {
@@ -51,9 +51,13 @@ export const expsNormalize = (line) => {
         ret = ret.replace('@', '')
     }
     ret = Convert_branch_expressions(ret)
+    console.log(ret)
     ret = Reorder_operations(ret).trim()
+    console.log(ret)
+
     ret = Operands_numbering(ret)
     ret = ret.trim()
+    // console.log(ret)
     return ret
 }
 // parse string to rules
@@ -148,6 +152,7 @@ export const Parse_rules_and_titles = (lines, flag) => {
         //normalize rule
         if(flag){
             rule = expsNormalize(nline)
+            // console.log(rule)
         }else{
             rule = RuleNormalize(nline)
         }
@@ -259,7 +264,7 @@ const Reorder_operations = (line) => {
             if (replace.trim() != '') {
                 i+=1
                 ret += replace + ','
-                if(replace.includes('#13')){
+                if(replace.includes('#13') || replace.includes('#12')){
                     while(line[i] != '}') i+=1
                 }
                 
@@ -274,6 +279,8 @@ const Reorder_operations = (line) => {
 }
 
 const Reorder = (operation, rest) => {
+
+    if (operation.includes('j_1')) console.log( operation, rest)
     if (operation.trim() == '') return ''
 
 
@@ -407,6 +414,7 @@ const FindOperators = (operation, rest) => {
     if(Broperator != '')
     {
         found = false
+        //find the first operation 
         while (j < rest.length) {
             if (rest[j] == '#'){
                 operator += rest[j]
@@ -416,9 +424,7 @@ const FindOperators = (operation, rest) => {
             }
     
             if(rest[j] == '}' || (found && rest[j] == ' '))
-            {       
-                j += 1
-     
+            {            
                 break
             }
             if(found){
@@ -437,7 +443,7 @@ const FindOperators = (operation, rest) => {
         let topInt = 0 
         let botInt = 0
         let Switch = false
-
+        // console.log('rest: ', rest,rest[j])
         while (j < rest.length){
             if(rest[j] == '}')
             {
