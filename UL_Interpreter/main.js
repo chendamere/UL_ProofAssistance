@@ -16,7 +16,7 @@ let tstatements = LatexChapters(rf, './theorems', p)
 let tpexp = LatexExps(rf,'./theorems',true)
 
 var pf = new ProofAssistant(axioms, p, tpexp)
-// pf.PrintAllRules()
+pf.PrintAllRules()
 
 // console.log(pf.isRule(pf.genRule('!,#11, @, #11, #11, \n')[0]))
 // console.log(tpexp)
@@ -37,11 +37,15 @@ for(const r of tstatements){
         endexp.push(er)
     }
 }
+// console.log(pf.isRule(pf.genRule('!, #12 $1 $1 , #11 , #15 1 ,  @ , #13 $1 $1 #10 2 3 , #4 1 , #4 1 ,\n')[0]))
 let expi = 0
 var index = 1
 var next = []
+// let ret = pf.genRule('!,#4 1,@,#4 1,\n')[0]
+// console.log(pf.Same(ret.leftexps, ret.rightexps))
 while(expi < beginexp.length){
     console.log('---------- proof ',expi,' begin ----------')
+    // console.log(expstack.length,expi)
     expstack.push([])
     let fromstack = false 
 
@@ -93,6 +97,7 @@ while(expi < beginexp.length){
             else{
 
                 let e = proveExps(tpexp, p)
+                // console.log('nextexp: ',e[0])
                 next = e[0]
                 index = e[1]
                 if(next!= -1){
@@ -132,7 +137,7 @@ function switchtopbot(exp){
         let e = exp[ti]
         if(e.Opparam){
             if(e.Opparam[0]){
-                if(e.Opparam[0].value == '#12'){
+                if(e.Opparam[0].value == '#12' || e.Opparam[0].value == '#13'){
                     
     
                     br = e.Opparam
@@ -170,22 +175,20 @@ function switchtopbot(exp){
 
 function proveExps(tpexp, p) { 
     let i = 0
-    let done = false
 
     if(!tpexp) return [-1,-1]
     while (tpexp[i] && tpexp[i].length !=0){
         let l = tpexp[i]
         // console.log(l)
-        if(!done){
-            console.log(p,l)
-            let t = pf.Proving(p, l)
-            if(t != -1) {
-                // console.log('here: ',t)
+        // console.log('from proveExps?: ',p,l)
+        let t = pf.Proving(p, l)
+        if(t != -1) {
+            // console.log('here: ',t)
 
-                return [t[0], i]
-                //add every exp execpt for the one just used
-            }
+            return [t[0], i]
+            //add every exp execpt for the one just used
         }
+    
         
         i+=1
     }
@@ -203,8 +206,8 @@ function provefromstack(p){
 
         // console.log(pf.RuleToString(fakerule), ': ',checkParams(getParams(fakerule.leftexps), getParams(fakerule.rightexps)))
     
-        let leftparam  = getParams(fakerule.leftexps)
-        let rightparam = getParams(fakerule.rightexps)
+        // let leftparam  = getParams(fakerule.leftexps)
+        // let rightparam = getParams(fakerule.rightexps)
         // console.log(leftparam)
         // if(!checkParams(leftparam, rightparam)) {i+=1; continue}
         
@@ -238,9 +241,10 @@ function provefromstack(p){
         // let stbe = switchtopbot(l)
         // let flipedr = pf.genRule('!'+p+'@'+stbe+'\n')[0]
         let flipstack =[]
+        // console.log(pf.ExpToString(fakerule.rightexps), 'switched: ',pf.ExpToString(switchtopbot(fakerule.rightexps)))
         // console.log(expstack,i)
         for(const l of expstack[i]){
-            console.log(l)
+            // console.log(l)
             if(l ==[]) l =''
             
             // console.log(stb)
@@ -250,7 +254,7 @@ function provefromstack(p){
         // console.log(flipstack)
         e= proveExps(flipstack,p)
         ret=e[0]
-        // console.log(ret)
+        // console.log('finished?',p, '@' ,ret)
         // let index=e[1]
         if(ret != -1){
             return [ret,flipstack]
@@ -286,7 +290,7 @@ function replaceoperator(src, tar, l){
                 }
                 
                 let ret = pf.ExpToString(dummystatement.rightexps)
-                console.log('dummy: ',ret)
+                // console.log('dummy: ',ret)
                 return ret
             
             }

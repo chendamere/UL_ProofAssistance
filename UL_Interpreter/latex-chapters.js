@@ -51,9 +51,9 @@ export const expsNormalize = (line) => {
         ret = ret.replace('@', '')
     }
     ret = Convert_branch_expressions(ret)
-    console.log(ret)
+    // console.log(ret)
     ret = Reorder_operations(ret).trim()
-    console.log(ret)
+    // console.log(ret)
 
     ret = Operands_numbering(ret)
     ret = ret.trim()
