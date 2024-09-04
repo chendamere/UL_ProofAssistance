@@ -129,49 +129,6 @@ while(expi < beginexp.length){
 }
 
 
-function switchtopbot(exp){
-    let br
-    let ret=[]
-    let ti =0
-    while(ti< exp.length){
-        let e = exp[ti]
-        if(e.Opparam){
-            if(e.Opparam[0]){
-                if(e.Opparam[0].value == '#12' || e.Opparam[0].value == '#13'){
-                    
-    
-                    br = e.Opparam
-                    let topi = parseInt(br[1].value[1])
-                    let boti = parseInt(br[2].value[1])
-                    e.Opparam[1].value = e.Opparam[2].value
-                    e.Opparam[2].value = e.Opparam[1].value
-                    ret.push(e)
-    
-                    // console.log('topi: ', topi)
-                    let tii = ti + topi +1
-                    while(tii<= ti+topi+boti){
-                        e = exp[tii]
-                        ret.push(e)
-                        tii +=1
-                    }
-                    tii = ti + 1
-                    while(tii <= ti+topi){
-                        e = exp[tii]
-                        ret.push(e)
-                        tii +=1
-                    }
-                    ti = ti + topi + boti+1
-                    continue 
-                }
-            }
-        }
-        ret.push(e)
-        ti +=1
-    }
-    // console.log(ret)
-
-    return ret
-}
 
 function proveExps(tpexp, p) { 
     let i = 0
