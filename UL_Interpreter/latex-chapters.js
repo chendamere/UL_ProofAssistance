@@ -12,7 +12,7 @@ export const LatexExps = (ReadFiles, folder,flag) => {
 }
 export const Parser = (AnalyseCode, ParseTokens) => pcode => {
     // console.log(pcode)
-
+    
     let tokens = AnalyseCode(pcode)
 
     if(!tokens) return null
