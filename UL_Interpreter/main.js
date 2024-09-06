@@ -212,7 +212,7 @@ function provefromstack(p, stackindex){
     let i =0
     if(stackindex != 0) i = stackindex
     else i=0
-    console.log('provefromstack:')
+    // console.log('provefromstack:')
     // console.log(beginexp.length, expstack.length,expstack)
     while ( i < beginexp.length){
         let l = beginexp[i]
@@ -221,24 +221,37 @@ function provefromstack(p, stackindex){
         let x = getchangeoperator(fakerule)
 
         let tstack = []
-        console.log(expstack[i])
-        
-        for(const l of expstack[i]){
-            let r = replaceoperator(x[0],x[1], l)
-            if(r) 
-            {
-                if(r.length==0){
-                    tstack.push(l)
+        // console.log(expstack[i])
+        let alt = false 
+        let e 
+        let ret
+        while(true){
+            for(const l of expstack[i]){
+                let r = replaceoperator(x[0],x[1], l, alt)
+                if(r) 
+                {
+                    if(r.length==0){
+                        tstack.push(l)
+                    }
+                    tstack.push(r)
                 }
-                tstack.push(r)
+            }
+            // console.log('JKJK: ', tstack)
+            e= proveExps(tstack,p)
+            ret=e[0]
+            if(ret != -1 && pf.Same(e[0], endexp[i])){
+                return [ret,tstack, i]
+            }else{
+                if(!alt){
+                    alt = true
+                }
+                else{
+                    tstack = []
+                    break
+                }
             }
         }
-        // console.log('JKJK: ', tstack)
-        let e= proveExps(tstack,p)
-        let ret=e[0]
-        if(ret != -1){
-            return [ret,tstack, i]
-        }
+        
 
         let flipstack =[]
         for(const l of expstack[i]){
@@ -258,7 +271,7 @@ function provefromstack(p, stackindex){
     console.log('no matching begin expression')
     return [-1,-1]
 }
-function replaceoperator(src, tar, l){
+function replaceoperator(src, tar, l, alt){
     let dummystatement = pf.genRule('!'+',@'+l+'\n')[0]
     
     for (const op of dummystatement.rightexps){
@@ -276,13 +289,19 @@ function replaceoperator(src, tar, l){
                 }
 
                 if(pf.binaryOperators.includes(src) && pf.unaryOperators.includes(tar)){
-                    op.operands = op.operands.slice(0,op.operands.length-1)
+                    if(alt){
+                        let tempv = op.operands[op.operands.length-1]
+                        op.operands = op.operands.slice(0,op.operands.length-2)
+                        op.operands.push(tempv)
+                    }else{
+                        op.operands = op.operands.slice(0,op.operands.length-1)
+                    }
                 }
                 else if(pf.binaryOperators.includes(tar) && pf.unaryOperators.includes(src)){
                     op.operands.push(op.operands[op.operands.length]+1)
                 }
                 let ret = pf.ExpToString(dummystatement.rightexps)
-                console.log('dummy: ',ret)
+                // console.log('dummy: ',ret)
                 return ret
             
             }
