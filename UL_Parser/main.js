@@ -44,18 +44,6 @@ fs.readdirSync('./theorems/').forEach(file => {
         tstatements.push(latexparser.Parse(e))
     }
 })
-
-
 let pf = new ProofAssistant(allrules, latexparser, allexps);
-// pf.PrintAllRules()
-// let x = pf.genRule('!,#10 1 3, #7 1 2, @ ,#10 1 3, #7 1 2,')
-// console.log(pf.ExpToString(x.leftexps), pf.ExpToString(x.rightexps))
-// console.log(pf.Same(x.leftexps, x.rightexps))
 let ps = new ProofStrategy(pf, tstatements)
 ps.Init()
-// let test1 = latexparser.Parse('!,#10 1,@,')
-// console.log(test1)
-// console.log(pf.parse('!,#10,@,'))
-// let test = pf.genRule('!,#10 1,@,#10 1, ')
-// console.log(test)
-// console.log(pf.Same(test.leftexps, test.rightexps))
