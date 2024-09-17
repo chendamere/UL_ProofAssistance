@@ -1,36 +1,23 @@
 
-import {LatexChapters, LatexExps,Parse_rules_and_titles,Parser} from'./latex-chapters.js'
-import ParseTokens from './parser-analyser.js'
-import ProofAssistant from './ProofAssistant.js'
-import AnalyseCode from './lexer-analyser.js'
-import ReadFiles from './fileReader.js'
-import brain from 'brain.js'
-
-
-//prove all rules
-
 export default class ProofStrategy {
-    constructor (){
-        this.rf = ReadFiles(Parse_rules_and_titles)
-        this.p = Parser(AnalyseCode, ParseTokens)
-        this.axioms = LatexChapters(this.rf, './axiom', this.p)
-        this.tpexp = LatexExps(this.rf,'./theorems',true)
-        this.tstatements = LatexChapters(this.rf, './theorems', this.p)
-        this.pf = new ProofAssistant(this.axioms, this.p, this.tpexp)
+    constructor(pf, tstatements){
+        this.pf = pf
         this.beginexp = []
         this.endexp = []
         this.expstack =[]
-        for(const r of this.tstatements){
+        for(const r of tstatements){
             let s = this.pf.RuleToString(r)
 
-            let el = s.split('@')[0]
-            let er = s.split('@')[1]
+            let el = s.split('@')[0].trim()
+            let er = s.split('@')[1].trim()
             this.beginexp.push(el)
             this.endexp.push(er)
         }
         
     }
     Init(){
+
+        // console.log(this.pf.genRule('!,#12 $1 $0 #10 1 2,  1, @ ,#3 1, \n')[0].leftexps)
         this.ProveAll(this.beginexp, this.endexp)
     }
     ProveAll(beginexp, endexp) {
@@ -41,6 +28,7 @@ export default class ProofStrategy {
         var index = 1
         var stackindex=0
         var next = []
+        
         while(expi < beginexp.length){
             console.log('---------- proof ',expi,' begin ----------')
         
@@ -52,8 +40,8 @@ export default class ProofStrategy {
             
             //check if rule is already a rule 
             //isRule matches code variables with operations
-            let r = (this.pf.genRule('!'+p+'@'+q+'\n')[0])
-        
+            let r = (this.pf.genRule('!'+p+'@'+q))
+
             if(!this.pf.isRule(r)){
                 //first try, look for provable expressions in tpexp,
                 //e is the next rule to prove, or else is -1
@@ -63,6 +51,7 @@ export default class ProofStrategy {
                 index = e[1]
                 
                 let tempstack
+                
                 if(next == -1) {
                     let x = this.provefromstack(expi, p,stackindex)
                     if(x[0] != -1){
@@ -91,8 +80,9 @@ export default class ProofStrategy {
                 }
         
                 //by this point we have proven 1 rule, next is either -1 or the next rule
-                let npr = this.pf.genRule('!'+next +'@'+endexp[expi]+'\n')[0]
-        
+                let npr = this.pf.genRule('!'+next +'@'+endexp[expi])
+                // throw new Error('here')
+
                 //prove the rest
                 //if next == -1 then it will pass automatically
                 while(next != -1 && !this.pf.Same(npr.leftexps, npr.rightexps)){
@@ -162,17 +152,21 @@ export default class ProofStrategy {
                     else{
                         //add to the expstack
                         this.expstack[expi].push(next)
-                        console.log('add to stack5: ',next, expi, )
-                        npr = this.pf.genRule('!'+next +'@'+endexp[expi]+'\n')[0]
-                        
+                        console.log('add to stack5: ',next, expi)
+                        npr = this.pf.genRule('!'+next +'@'+endexp[expi])
+                        // console.log('same?', this.pf.Same(npr.leftexps, npr.rightexps), npr)
+
                     }
                 }
                 
             }
         
             
+            if(next == -1){
+                throw new Error('failed')
+            }
         
-            let newrule = this.pf.genRule('!'+beginexp[expi]+'@'+endexp[expi]+'\n')[0]
+            let newrule = this.pf.genRule('!'+beginexp[expi]+'@'+endexp[expi])
             console.log('newrule: ', this.pf.RuleToString(newrule))
             console.log('expstack[expi]:',this.expstack[expi])
             this.pf.allrules.push(newrule)
@@ -192,7 +186,7 @@ export default class ProofStrategy {
             let l = exps[i]
             // console.log('from proveExps?: ',p,l)
             let t = this.pf.Proving(p, l)
-            console.log('t: ',t)
+            // console.log('t: ',t)
             if(t != -1) {
                 return [t[0], i]
             }
@@ -210,7 +204,7 @@ export default class ProofStrategy {
         // console.log('provefromstack:')
         while ( i < this.beginexp.length-1 && i< end){
             let l = this.beginexp[i]
-            let fakerule = this.pf.genRule('!'+p+'@'+l+'\n')[0]
+            let fakerule = this.pf.genRule('!'+p+'@'+l)
     
             let x = this.getchangeoperator(fakerule)
     
@@ -252,15 +246,15 @@ export default class ProofStrategy {
         return [-1,-1]
     }
     replaceoperator(src, tar, l, alt){
-        let dummystatement = this.pf.genRule('!'+',@'+l+'\n')[0]
+        let dummystatement = this.pf.genRule('!'+',@'+l)
         
         for (const op of dummystatement.rightexps){
             if(op.operator){
-                if(op.operator.value == src){
-                    op.operator.value = tar 
+                if(op.operator == src){
+                    op.operator = tar 
                 
                     if(op.Opparam){
-                        if(op.Opparam.value != '')
+                        if(op.Opparam != '')
                         {
                             for(const v of op.Opparam){
                                 srctablel.push(v)
@@ -310,18 +304,17 @@ export default class ProofStrategy {
         }
         else{
             return [d2[0],d1[0]]
-    
         }
     }
-    
     getOperators(exps){
         let ret = []
         for (const e of exps){
             if(e.operator){
-                if(!ret.includes(e.operator.value))
-                    ret.push(e.operator.value)
+                if(!ret.includes(e.operator))
+                    ret.push(e.operator)
             }
         }
         return ret
     }
 }
+
