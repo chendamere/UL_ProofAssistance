@@ -1,291 +1,236 @@
 
 export default class ProofStrategy {
-    constructor(pf, tstatements){
+    constructor(pf, tstatements, allexps){
         this.pf = pf
         this.beginexp = []
         this.endexp = []
         this.expstack =[]
-        for(const r of tstatements){
-            let s = this.pf.RuleToString(r)
-
-            let el = s.split('@')[0].trim()
-            let er = s.split('@')[1].trim()
-            this.beginexp.push(el)
-            this.endexp.push(er)
-        }
-        
+        this.tstatements=tstatements
+        this.allexps = allexps
+        this.expioffset = 0
     }
     Init(){
-
-        // console.log(this.pf.genRule('!,#12 $1 $0 #10 1 2,  1, @ ,#3 1, \n')[0].leftexps)
-        this.ProveAll(this.beginexp, this.endexp)
-    }
-    ProveAll(beginexp, endexp) {
-        let tpexp = this.pf.Exps.slice()
-        // console.log(tpexp)
-        
-        var expi = 0
-        var index = 1
-        var stackindex=0
-        var next = []
-        
-        while(expi < beginexp.length){
-            console.log('---------- proof ',expi,' begin ----------')
-        
-            this.expstack.push([])
-            let fromstack = false 
-            let p = beginexp[expi]
-            let q = endexp[expi]
-            console.log('begin start: ',p, 'end: ', q)
-            
-            //check if rule is already a rule 
-            //isRule matches code variables with operations
-            let r = (this.pf.genRule('!'+p+'@'+q))
-
-            if(!this.pf.isRule(r)){
-                //first try, look for provable expressions in tpexp,
-                //e is the next rule to prove, or else is -1
-                
-                let e = this.proveExps(tpexp, p)
-                next = e[0]
-                index = e[1]
-                
-                let tempstack
-                
-                if(next == -1) {
-                    let x = this.provefromstack(expi, p,stackindex)
-                    if(x[0] != -1){
-                        fromstack = true
-                        next = x[0]
-                        tempstack=x[1]
-                        tempstack.splice(0,1)
-                        this.expstack[expi].push(next)
-                        stackindex = x[2]
-                        console.log('add to stack0: ',next)
-        
-                        // console.log('add to stack0: ',next)
-                    }
-                    else{
-                        throw new Error('no matching expression in provefromstack')
-                    }
-                }
-                else{
-        
-                    //keep track of all expression that are used in a stack
-                    this.expstack[expi].push(next)
-                    console.log('add to stack1: ',next)
-        
-                    //remove the found expression in tpexp
-                    tpexp.splice(index,1)
-                }
-        
-                //by this point we have proven 1 rule, next is either -1 or the next rule
-                let npr = this.pf.genRule('!'+next +'@'+endexp[expi])
-                // throw new Error('here')
-
-                //prove the rest
-                //if next == -1 then it will pass automatically
-                while(next != -1 && !this.pf.Same(npr.leftexps, npr.rightexps)){
-                    if(fromstack){
-                        let e = this.proveExps(tempstack, next)
-                        
-                        if(e[0] != -1){
-                            tempstack.splice(0,1)
-                            next = e[0]
-                        }
-                        else{
-                            //maybe here look for the next stack given stack index
-        
-                            let x = this.provefromstack(expi, next, stackindex, false)
-        
-                            if(x[0] != -1){
-                                next = x[0]
-                                tempstack=x[1]
-                                tempstack.splice(0,1)
-                                stackindex = x[2]
-        
-                            }else{
-                                //try again but altnerative operand 
-                                x = this.provefromstack(expi, beginexp[expi], stackindex, true )
-                                if(x[0] != -1){
-                                    next = x[0]
-                                    tempstack=x[1]
-                                    tempstack.splice(0,1)
-                                    stackindex = x[2]
-                                    this.expstack[expi] = []
-                                }
-                                else{
-                                    throw new Error('failed in prove rest from proveExps->tempstack->provefromstack')
-                                }
-                            }
-                        }
-                    }
-                    else{
-                        let e = this.proveExps(tpexp, next)
-        
-                        if(e[0] != -1){
-                            next = e[0]
-                            index = e[1]
-                            tpexp.splice(index,1)
-                        }
-                        else if(next ==-1){
-                            //reset next and run the loop again
-                            let x = this.provefromstack(expi, next, stackindex, false)
-        
-                            if(x[0] != -1){
-                                fromstack = true
-                                next = x[0]
-                                tempstack=x[1]
-                                tempstack.splice(0,1)
-                                stackindex = x[2]
-        
-                            }                    
-                        }
-                        else{
-                            throw new Error('failed in prove rest from proveExps->texp && provefromstack')
-                        }
-                    }
-        
-                    if(next == -1) {
-                        throw new Error('debug next: ', next)
-                    }
-                    else{
-                        //add to the expstack
-                        this.expstack[expi].push(next)
-                        console.log('add to stack5: ',next, expi)
-                        npr = this.pf.genRule('!'+next +'@'+endexp[expi])
-                        // console.log('same?', this.pf.Same(npr.leftexps, npr.rightexps), npr)
-
-                    }
-                }
-                
+        for(let i =0; i < this.allexps.length; i ++){
+            let begine = []
+            let ende = []
+            for(const r of this.tstatements[i]){
+                let s = this.pf.RuleToString(r)    
+                let el = s.split('@')[0].trim()
+                let er = s.split('@')[1].trim()
+                begine.push(el)
+                ende.push(er)
+                this.beginexp.push(el)
+                this.endexp.push(er)
             }
-        
-            
-            if(next == -1){
-                throw new Error('failed')
-            }
-        
-            let newrule = this.pf.genRule('!'+beginexp[expi]+'@'+endexp[expi])
-            console.log('newrule: ', this.pf.RuleToString(newrule))
-            console.log('expstack[expi]:',this.expstack[expi])
-            this.pf.allrules.push(newrule)
-        
-            console.log('--------- proof ',expi,' end ----------')
-            console.log()
-        
-            expi += 1
-        
+            this.ProveAll(begine, ende, i)
+            this.expioffset += this.beginexp.length
+            this.beginexp = []
+            this.endexp = []
         }
     }
-    proveExps(exps, p) { 
-        let i = 0
-    
-        if(!exps) return [-1,-1]
-        while (exps[i] && exps[i].length !=0){
-            let l = exps[i]
-            // console.log('from proveExps?: ',p,l)
-            let t = this.pf.Proving(p, l)
-            // console.log('t: ',t)
-            if(t != -1) {
-                return [t[0], i]
-            }
+    ProveAll(beginexps, endexps, expindex, debugi = beginexps.length-1) {
+        let tpexp = this.allexps[expindex]
+        var expi = 0
+        var stackindex=0
+        let debugging = false
         
+        while(expi < beginexps.length){
+            console.log('--- Proof ', expi, ' begins ----')
+            this.expstack.push([beginexps[expi]])
+            let p = beginexps[expi]
+            let q = endexps[expi]
+            let newrule = (this.pf.genRule('!'+p+'@'+q))
+            console.log('newrule: ', this.pf.RuleToString(newrule))
+
+            if(this.pf.isRule(newrule)){
+                this.expstack[this.expstack.length-1].push(q)
+                expi += 1
+                console.log('finished proof in ProveAll -> isrule!', this.pf.RuleToString(newrule))
+                continue
+            }
+            // console.log(tpexp[expi])
+            let ret = this.proveExps(tpexp[expi], p, q, debugging)
+            if(ret != -1){
+                
+                this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret)
+                this.pf.allrules.push(newrule)
+
+                console.log('finished proof in ProveAll -> proveExps!', this.pf.RuleToString(newrule))
+                expi += 1
+                continue
+            }
             
+            console.log('proveExp failed, trying provefromstack',)
+            // this.pf.PrintAllRules()
+            ret = this.provefromstack(expi+this.expioffset, p, q, stackindex, debugging)
+            if(ret != -1){
+                this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret[0])
+                stackindex = ret[1]
+                this.pf.allrules.push(newrule)
+                console.log(this.expstack[this.expstack.length-1])
+                console.log('finished proof in ProveAll -> provefromstack!', this.pf.RuleToString(newrule))
+                expi += 1
+                continue
+            }
+
+            throw new Error('failed in ProveAll')
+        }
+    }
+
+    matchAndCheckExp(start, end){
+        // console.log
+        let begincheck = this.pf.genRule('!'+start+'@'+end)
+        let r1variant = this.pf.try_match_operand_order(begincheck)
+        // console.log('!!', r1variant)
+        for(const v of r1variant){
+            if(this.pf.Proving(this.pf.ExpToString(v.leftexps), this.pf.ExpToString(v.rightexps), false) == 1){
+                // console.log('!!',this.pf.RuleToString(v))
+
+                return true
+            }
+        }
+        return false 
+    }
+    proveExps(exps, start, end, debug=false) { 
+        if(exps.length == 0){return -1}
+        let i = 0
+        let prev=start;
+        let next;
+        let ret = []
+        // console.log('!!!',end, exps[exps.length-1])
+        // if(!this.matchAndCheckExp(start, exps[0])) return -1 
+        if(!this.matchAndCheckExp(end, exps[exps.length-1])) return -1
+
+        while(exps[i]){
+            next = exps[i]
+            let found = false
+            let r1 = (this.pf.genRule('!'+prev+'@'+next))
+            let r1variant = this.pf.try_match_operand_order(r1)
+            for(const v of r1variant){
+                if(this.pf.Proving(this.pf.ExpToString(v.leftexps), this.pf.ExpToString(v.rightexps), true) == 1){
+                    ret.push(this.pf.ExpToString(v.rightexps))
+                    prev = this.pf.ExpToString(v.rightexps)       
+                    found = true
+                    break
+                }
+            }
+            if(!found){
+                return -1
+            }    
             i+=1
         }
-        
-        return [-1,-1]
+        return ret
     }
-    provefromstack(end, p, stackindex, alt){
-        let i =0
-        if(stackindex != 0) i = stackindex
-        else i=0
-        // console.log('provefromstack:')
-        while ( i < this.beginexp.length-1 && i< end){
-            let l = this.beginexp[i]
-            let fakerule = this.pf.genRule('!'+p+'@'+l)
-    
-            let x = this.getchangeoperator(fakerule)
-    
+
+    proveReduceOprExps(tstack, p, q, debug){
+        let ret = []
+        for(const exp of tstack){
+            let nr = this.pf.genRule('!,@'+exp).rightexps
+            for(const opt of nr){
+                let j =0
+                while(j < opt.operands.length){
+                    let x = parseInt(opt.operands[j])
+                    if(x > 1){
+                        x=x-1
+                        opt.operands[j] = x.toString()
+
+                    }
+                    j += 1
+                }
+            }
+            ret.push(this.pf.ExpToString(nr))
+        }
+        let ret1 = this.proveExps(ret, p , q, debug)
+        return ret1
+    }
+
+    provefromstack(end, p, q, stackindex, alt, debug=false){
+        let i = stackindex
+        while ( i < this.expstack.length-1 && i < end){
+
+            //get the changing operator from beginning lines, if the changed lines are not same, then repeat the process with end line
+            let l = this.expstack[i][0]
+            let tempr = this.pf.genRule('!'+p+'@'+l)
+            let x = this.getchangeoperator(tempr)
+
             let tstack = []
-            
-            for(const l of this.expstack[i]){
+            const slicelst = this.expstack[i].slice(0,this.expstack[i].length)
+            for(const l of slicelst){
                 let r = this.replaceoperator(x[0],x[1], l, alt)
-                if(r) 
-                {
+                if(r){
                     if(r.length==0){
                         tstack.push(l)
                     }
                     tstack.push(r)
                 }
             }
-            // console.log('JKJK: ', tstack)
-            let e= this.proveExps(tstack,p)
-            let ret=e[0]
+
+            //switch the last statement in exp with end expression, replace the last expression in tstack if 
+            // let l2 = this.expstack[i][this.expstack[i].length-1]
+            // let tempr2 = this.pf.genRule('!'+q+'@'+l2)
+            // let x2 = this.getchangeoperator(tempr2)
+            // let r2 = this.replaceoperator(x2[0],x2[1], l2, alt)
+            // let checkendr = this.pf.genRule('!'+q+'@'+r2)
+            // console.log('#', this.pf.RuleToString(checkendr))
+            // if(this.pf.Same(checkendr.leftexps,checkendr.rightexps)){
+            //     tstack[tstack.length-1] = r2
+            //     console.log('!!!!!!!!!!', tstack)
+            // }
+
+            // console.log('stack pass here', tstack,  this.pf.RuleToString(tempr))
+
+            let ret= this.proveExps(tstack,p, q,debug)
             if(ret != -1){
-                return [ret,tstack, i]
+                return [tstack, i]
             }
-    
+            // console.log('stack failed, dec operand', tstack)
+
+            ret = this.proveReduceOprExps(tstack, p, q, debug)
+            if(ret != -1){
+                return [tstack, i]
+            }
+
             let flipstack =[]
-            for(const l of this.expstack[i]){
-                // console.log(l)
+            for(const l of slicelst){
                 if(l ==[]) l =''
                 flipstack.push(l)
             }
-            e= this.proveExps(flipstack,p)
-            ret=e[0]
-    
+            ret=this.proveExps(flipstack,p, q, debug)
             if(ret != -1){
-                return [ret,flipstack, i]
+                return [flipstack, i]
             }
             i+=1
     
         }
-        console.log('no matching begin expression')
-        return [-1,-1]
+        return -1
     }
     replaceoperator(src, tar, l, alt){
         let dummystatement = this.pf.genRule('!'+',@'+l)
-        
         for (const op of dummystatement.rightexps){
             if(op.operator){
                 if(op.operator == src){
                     op.operator = tar 
-                
-                    if(op.Opparam){
-                        if(op.Opparam != '')
-                        {
-                            for(const v of op.Opparam){
-                                srctablel.push(v)
-                            }
-                        }
-                    }
-    
                     if(this.pf.binaryOperators.includes(src) && this.pf.unaryOperators.includes(tar)){
                         if(alt){
-                            // console.log('before', op.operands)
+                            //get second operand
                             let temp = op.operands[1]
                             op.operands = op.operands.slice(0,0)
-                            op.operands.push(temp)
-                            // console.log('after',op.operands)
-    
+                            op.operands.push(temp)    
                         }
                         else{
+                            //get all but last operand
                             op.operands = op.operands.slice(0,op.operands.length-1)
                         }
                     }
                     else if(this.pf.binaryOperators.includes(tar) && this.pf.unaryOperators.includes(src)){
+                        //add the next operand to operands
                         op.operands.push(op.operands[op.operands.length]+1)
                     }
                     let ret = this.pf.ExpToString(dummystatement.rightexps)
-                    // console.log('dummy: ',ret)
-                    return ret
-                
+                    return ret               
                 }
             }
         }
-        
         return l
     }
     getchangeoperator(fakerule) {
@@ -296,8 +241,6 @@ export default class ProofStrategy {
     
         const d1 = optl.filter((element) => !optr.includes(element));
         const d2 = optr.filter((element) => !optl.includes(element));
-    
-        // console.log(d1)
     
         if (d1.length != 1 ||d2.length != 1) {
             return []

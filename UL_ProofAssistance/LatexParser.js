@@ -96,29 +96,29 @@ class LatexParser extends Parser {
             else{line += char}
         }
         // console.log(lines)
-        let chapter = this.Parse_rules_and_titles(lines, flag)
+        let ret
+        if(!flag){
+            ret = this.Parse_rules_and_titles(lines)
+        }else{
+            ret = this.Parse_exps(lines)
+        }
         // console.log(chapter)
-        return chapter
+        return ret
     }
-    ChaptertoExps = (chapters) => {
-        let AllRules = []
-        let i=0
-    
-        for (const chapter of chapters) {
-            let code = chapter.rules
-            for (const c of code) {
-                i += 1
+    trimExps = (exps) => {
+        let ret = []
+        for (const expss of exps) {
+            let l1 =[]
+            for (const c of expss) {
                 let pcode = c.slice(2,c.length)
-                
-                AllRules.push(pcode)
-    
-            }
+                l1.push(pcode)
+            }            
+            ret.push(l1)
         }
     
-        return AllRules;
+        return ret;
     }
-    Parse_rules_and_titles = (lines, flag) => {
-
+    Parse_rules_and_titles = (lines) => {
         //extract title and rules
         let all_rules = []
         let title = ''
@@ -126,25 +126,16 @@ class LatexParser extends Parser {
         let rule = '';
         let parse = true
     
-        if(flag) parse = false
-    
         for (const line of lines){
+            
             if(line.includes('\\Ri')) continue
-            if(flag){
-                if(line.includes('\\begin{math}')) {parse = true 
-                    continue
-                }
-                if(line.includes('\\end{math}'))   {parse = false
-                    continue
-                }
-            }else {
-                if(line.includes('\\begin{math}')) {parse = false 
-                    continue
-                }
-                if(line.includes('\\end{math}'))   {parse = true 
-                    continue
-                }
+            if(line.includes('\\begin{math}')) {parse = false 
+                continue
             }
+            if(line.includes('\\end{math}'))   {parse = true 
+                continue
+            }
+            
     
             //ignore %
             if(line.includes("%")){
@@ -160,19 +151,13 @@ class LatexParser extends Parser {
             if(!parse) continue;
     
             //line in the file 
-            nline = this.LineNormalize(line,flag)
-            if(nline.trim() == '')
-            {
-                continue
-            } 
+            nline = this.LineNormalize(line,false)
+            if(nline.trim() == '') continue
     
             //normalize rule
-            if(flag){
-                rule = this.expsNormalize(nline)
-                // console.log(rule)
-            }else{
-                rule = this.RuleNormalize(nline)
-            }
+            
+            rule = this.RuleNormalize(nline)
+            
             if(rule.trim() == '')
             {
                 continue
@@ -183,17 +168,92 @@ class LatexParser extends Parser {
                 if((!rule.includes('@'))) {     
                 }
                 else if(rule[rule.length-1] !== ','){
-    
+                    throw new Error('invalid string to rule format')
                 }
                 else{
-                    
                     all_rules.push(rule)
-                    
                 }
             }
         }
     
         return {title: title , rules : all_rules}
+    }
+
+    Parse_exps= (lines) => {
+        //extract title and rules
+        let all_exps = []
+        let nline;
+
+        let r = false
+        let exps = []
+        let parse = false
+    
+        for (const line of lines){
+            
+            // console.log(line,r)
+
+            if(line.includes('\\Ri')) continue
+
+
+            if(line.includes('\\begin{math}')) {parse = true;
+                r=false
+                continue
+            }
+            if(line.includes('\\end{math}')) {
+                parse = false;
+                all_exps.push(exps)
+                exps=[]
+                r=false
+                continue
+            }
+
+            if(line.includes('\[') && r){
+                all_exps.push([])
+                exps=[]
+                continue
+            }
+
+            if(line.includes('\[')){
+                r=true
+                // console.log('here', r)
+                continue
+            }
+
+            //ignore %
+            if(line.includes("%")){
+                continue 
+            }
+
+            if(!parse) continue;
+
+            if(line.includes('\[') && r){
+                all_exps.push([])
+            }
+            //line in the file 
+            nline = this.LineNormalize(line,true)
+            if(nline.trim() == '')
+            {
+                continue
+            }
+    
+            //normalize rule
+            let exp = this.expsNormalize(nline)
+
+            if(exp.trim() == '') continue
+            else{
+                //if last line ends with \\Rq then join last rule with current rule
+                if((!exp.includes('@'))) {     
+                }
+                else if(exp[exp.length-1] !== ','){
+    
+                }
+                else{
+                    exps.push(exp)
+                }
+            }
+        }
+        if(all_exps[all_exps.length-1].length==0) all_exps.push([])
+        return all_exps
     }
     LineNormalize = (line, flag) => {
         let nline = line.trim()
@@ -650,6 +710,7 @@ class LatexParser extends Parser {
         return ret
     }
 
+    // -- !
     Convert_equiv = (line) => {
         let ret = line.replaceAll('\\Rq', '@')
         return ret

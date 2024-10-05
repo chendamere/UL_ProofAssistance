@@ -14,104 +14,105 @@ class ProofAssistant {
         this.Exps = Exps
         this.AllOperators =  this.Get_all_operator()
         this.unaryOperators = ['#1','#2','#3','#4','#5','#9']
-        this.binaryOperators = ['#8','#6','#7','#10']
+        this.binaryOperators = ['#8','#6','#7','#10', '#28', '#17']
         this.BrOperators = ['#12', '#13']
         this.AddSpacetoExp()
 
     }
 
+    matchbr(tempv){
+        let retl=tempv.leftexps
+        let retr=tempv.rightexps
+        let i =0
+        while(i < retl.length){
+            if(retl[i].Opparam.length != 0 && retr[i].Opparam.length!= 0 ){
+                if(retl[i].Opparam[0] != retr[i].Opparam[0]){
+                    retr[i].Opparam[0] = retl[i].Opparam[0]
+                }
+            }
+            i += 1
+        }
+        return retr
+    }
     //--Prove--
-    Proving(start, e) {
+    Proving(start, end, debug= false) {
 
         //operands are not binded yet
-        console.log('-------------')
-        console.log('start: ', start, 'end: ', e)
-        
-        let r = (this.genRule('!'+start+'@'+e))
+        if(debug){
+            console.log('------Proving-------')
+            console.log('start: ', start, 'end: ', end)
+        }
+        let tempv = this.genRule('!'+start+'@'+end)
+        if (this.Same(tempv.leftexps , tempv.rightexps)) return 1
+        let tempv2 = this.genRule('!'+start+'@'+end)
+        if(!this.isRule(tempv)){
+            let rules = this.trim_and_check(tempv)      
+            console.log(rules)      
+            
+            let check = -1
+            let i =0
+            while(i < rules.length){
+                if(rules[i] != -1)
+                {
+                    check =rules[i]
+                }
+                i+=1
+            }
+            if (check != -1){
+                let retr = this.matchbr(tempv)
+                if(debug){
+                    console.log('found proof, next exp: ', retr)
+                }
+                return 1
+            }
 
-        //bind operands to one of the variant
-        let rvariant = this.try_match_operand_order(r)        
-        // console.log(rvariant)
-        for( const v of rvariant){
-            //make 2 copies
-            console.log(this.RuleToString(v))
-            let tempv = this.genRule('!'+this.ExpToString(v.leftexps)+'@'+this.ExpToString(v.rightexps))
-            let tempv2 = this.genRule('!'+this.ExpToString(v.leftexps)+'@'+this.ExpToString(v.rightexps))
-            if(!this.isRule(tempv)){
-                let rules = this.trim_and_check(tempv)
-                // console.log('rules: ', rules)
-                let check = -1
-                let i =0
-                while(i < rules.length){
-                    if(rules[i] != -1)
-                    {
-                        check =rules[i]
-                    }
+            let f = this.switchtopbot(tempv2.rightexps)
+            if(!this.Same(f, tempv.rightexps)){
+                if(this.Same(tempv.leftexps, f)){
+                    return 1
+                }
+                let fliprules = this.trim_and_check(this.genRule('!'+this.ExpToString(tempv.leftexps)+'@'+this.ExpToString(f) ))
+                i=0
+                while(i < fliprules.length){
+                    if(fliprules[i] != -1) check =fliprules[i]
                     i+=1
                 }
                 if (check != -1){
-
-                    console.log('found prove, next exp: ', this.ExpToString(tempv.rightexps))
-                    return [this.ExpToString(tempv.rightexps), this.rule_to_mldata(check)]
+                    return 1
                 }
-
-                let f = this.switchtopbot(tempv2.rightexps)
-                if(!this.Same(f, tempv.rightexps)){
-                    let fliprules = this.trim_and_check(this.genRule('!'+this.ExpToString(tempv.leftexps)+'@'+this.ExpToString(f) ))
-                    i=0
-                    while(i < fliprules.length){
-                        if(fliprules[i] != -1)
-                        {
-                            check =fliprules[i]
-                        }
-                        i+=1
-                    }
-                    if (check != -1){
-    
-                        return [this.ExpToString(f), this.rule_to_mldata(check)]
-                    }
-                }
-            }
-            else{
-                console.log('isrule!: ', this.RuleToString(tempv))
-                return [this.ExpToString(tempv.rightexps), this.rule_to_mldata(tempv)]
             }
         }
-        console.log('no matching production')
-
+        else{
+            if(debug){
+                console.log('isrule!: ', this.RuleToString(tempv))
+        
+            }
+            return 1
+        }
         return -1
     }
     
     //--Trim and Branch--
     //return all different configuration of operands opdering 
     try_match_operand_order(parsed_newrule) {
-
-        // if(!parsed_newrule) return false
         let tar = parsed_newrule.rightexps
         let src = parsed_newrule.leftexps
         if(!tar || !src) return false
-
         let endmax = this.getmax(tar)
-        // console.log('endmax: ',endmax)
+        if(endmax == 0) return [parsed_newrule]
         let endmaxcounter= 0
         let ret = []
-        ret.push(parsed_newrule)
         while(endmaxcounter < endmax){
             if(tar.length == 0) break
 
             let target = this.ExpToString(this.incOperands(tar))
-
             let tr = '! ' + this.ExpToString(src) + ' @ ' + target
             let parsed_tr = this.genRule(tr)
-
-            // console.log('t:  ',parsed_tr)
-
-            // console.log('incr operands: ', this.RuleToString(parsed_tr))
             ret.push(parsed_tr)
             
             endmaxcounter += 1
         }
-        // console.log(ret.length,ret )
+
         return ret
     }
     switchtopbot(exp){
@@ -360,8 +361,8 @@ class ProofAssistant {
         let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
         let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule))
 
-        console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
-        console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
+        // console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
+        // console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
         // throw new Error('here')
 
         //dont pass the original rule, pass copies of the expression
@@ -441,11 +442,11 @@ class ProofAssistant {
     //operands of left and right exps are equivalent iff 
     incOperands(exps){
         let i = 0
+        let max = this.getmax(exps)
         let ret = exps
-        let max = this.getmax(ret)
         while(i < ret.length){
             let j = 0
-            if(ret[i].operands){
+            if(ret[i].operands.length>0){
                 while(j < ret[i].operands.length)
                 {
                     let temp = parseInt(ret[i].operands[j])
@@ -543,81 +544,78 @@ class ProofAssistant {
                 }    
                 lefti += 1
                 righti += 1
-                rretindex -=1
-                lretindex -=1
+                if(rretindex!=0 && lretindex!=0){
+                    rretindex -=1
+                    lretindex -=1
+                }
                 
             }else{frontstop = true }
             
             //trim back once
             if(!endstop && this.Same([pleft[leftendi]],[pright[rightendi]])){
                 //we have enter end of a branch, we are in bot expression by default, if same check last top exp
-                if(leftbr.prev != -1 || rightbr.prev != -1){
-                    if((leftendi <= leftbr.index+leftbr.top+leftbr.bot)
-                        && (rightendi<= rightbr.index+rightbr.top+rightbr.bot)
-                            &&(leftendi >= leftbr.index+ leftbr.top)
-                                &&(rightendi >= rightbr.index+ rightbr.top)
-                                    &&(this.Same([pleft[leftendi]],[pright[rightendi]]))){
-                                        //go to the top expression 
-                                        if(this.Same([pleft[leftendi - leftbr.bot]], [pright[rightendi - rightbr.bot]])){
+                if(this.inBranch(leftbr,rightbr, leftendi,rightendi)){
+                    //botsame
+                    if(this.Same([pleft[leftendi]],[pright[rightendi]])){
+                        //go to the top expression 
+                        //top same
+                        if(this.Same([pleft[leftendi - leftbr.bot]], [pright[rightendi - rightbr.bot]])){
 
-                                            //splice last top expression
-                                            //if we slice bot first there should be no issue with indexing, because bot exps are the last exps
-                                            if(rightendi - righti != rretindex){
-                                                retr.splice(rightendi- righti, 1)
-                                                retr[rretindex].Opparam[1] = '$' + (parseInt(retr[rretindex].Opparam[1][1])- 1).toString()
-                                            }
-                                            if(rightendi-(rightbr.bot)- righti != rretindex){
-                                                retr.splice(rightendi-(rightbr.bot)- righti, 1)
-                                                retr[rretindex].Opparam[2] = '$' + (parseInt(retr[rretindex].Opparam[2][1])- 1).toString()
-                                            }
-                                        
-                                            rightbr.bot -= 1
-                                            rightbr.top -= 1
-
-                                            let prule1 = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
-                                            // console.log('prule1: ', this.RuleToString(prule1))
-
-                                            if(this.isRule(prule1)) {
-                                                // console.log('1')
-                                                return [retl, retr]
-                                            }
-
-                                            if(leftendi-lefti != lretindex){
-                                                retl.splice(leftendi-lefti, 1)
-                                                retl[lretindex].Opparam[1] = '$' + (parseInt(retl[lretindex].Opparam[1].slice(1)) -1).toString()
-                                            }
-                                            if(leftendi-(leftbr.bot)- lefti != lretindex){
-
-                                                retl.splice(leftendi-(leftbr.bot)-lefti, 1)
-                                                retl[lretindex].Opparam[2] = '$' + (parseInt(retl[lretindex].Opparam[2].slice(1)) - 1).toString()
-                                            }
-                                            leftbr.bot -= 1
-                                            leftbr.top -= 1
-                                            //fix top bot index
-                                            if(leftbr.bot == 0 && leftbr.top == 0 && rightbr.bot == 0 && rightbr.top == 0 )
-                                            {
-                                                retl.splice(retl.length-1, 1)
-                                                retr.splice(retr.length-1, 1)
-                                            }
-                                            let prule2 = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
-                                            // console.log('prule2: ', this.RuleToString(prule2))
-
-                                            if(this.isRule(prule2)) {
-                                                // console.log('2')
-
-                                                return [retl, retr]
-                                            }
+                            //splice last top expression
+                            //if we slice bot first there should be no issue with indexing, because bot exps are the last exps
+                            if(rightendi - righti != rretindex){
+                                retr.splice(rightendi- righti, 1)
+                                retr[rretindex].Opparam[1] = '$' + (parseInt(retr[rretindex].Opparam[1][1])- 1).toString()
                             }
-                            leftendi -= 2
-                            rightendi -= 2                       
+                            if(rightendi-(rightbr.bot)- righti != rretindex){
+                                retr.splice(rightendi-(rightbr.bot)- righti, 1)
+                                retr[rretindex].Opparam[2] = '$' + (parseInt(retr[rretindex].Opparam[2][1])- 1).toString()
+                            }
+                        
+                            rightbr.bot -= 1
+                            rightbr.top -= 1
+
+                            let prule1 = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
+
+                            if(this.isRule(prule1)) {
+                                return [retl, retr]
+                            }
+
+                            if(leftendi-lefti != lretindex){
+                                retl.splice(leftendi-lefti, 1)
+                                retl[lretindex].Opparam[1] = '$' + (parseInt(retl[lretindex].Opparam[1].slice(1)) -1).toString()
+                            }
+                            if(leftendi-(leftbr.bot)- lefti != lretindex){
+
+                                retl.splice(leftendi-(leftbr.bot)-lefti, 1)
+                                retl[lretindex].Opparam[2] = '$' + (parseInt(retl[lretindex].Opparam[2].slice(1)) - 1).toString()
+                            }
+                            leftbr.bot -= 1
+                            leftbr.top -= 1
+                            //fix top bot index
+                            if(leftbr.bot == 0 && leftbr.top == 0 && rightbr.bot == 0 && rightbr.top == 0 )
+                            {
+                                retl.splice(retl.length-1, 1)
+                                retr.splice(retr.length-1, 1)
+                            }
+                            let prule2 = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
+
+                            if(this.isRule(prule2)) {
+
+                                return [retl, retr]
+                            }
                         }
-                        //top bot dont match, dont slice
-                        else{endstop = true}
-                        //slice two on each expressions    
+                        leftendi -= 2
+                        rightendi -= 2                       
+                    }
+                    //top bot dont match, dont slice
+                    else{endstop = true}
                 }
                 else{
                     //trim end like usual
                     // console.log('x', this.ExpToString(retl), this.ExpToString(retr))
+                    // console.log('!!!2', pleft[leftendi], pright[rightendi])
+
                     retl.splice(retl.length-1,1)
                     retr.splice(retr.length-1,1)
                     // console.log('x2', this.ExpToString(retl), this.ExpToString(retr))
@@ -637,6 +635,14 @@ class ProofAssistant {
         // console.log('4')
 
         return [retl, retr]
+    }
+
+    inBranch(leftbr,rightbr, leftendi,rightendi) {
+        return (leftbr.prev != -1 && rightbr.prev != -1) 
+        && (leftendi <= leftbr.index+leftbr.top+leftbr.bot) 
+        &&(leftendi >= leftbr.index+ leftbr.top) 
+        && (rightendi<= rightbr.index+rightbr.top+rightbr.bot)
+        &&(rightendi >= rightbr.index+ rightbr.top)
     }
 
     //trim branch takes the last br operation found from left to right 
@@ -937,66 +943,33 @@ class ProofAssistant {
         return false 
     }
 
+    operatorlist(src, brflag=false){
+        let ret =[]
+        for (const e of src){
+            if(e.operator){
+                ret.push(e.operator)
+            }
+            if(e.Opparam){
+                if(e.Opparam.length != 0){
+                    if(brflag && e.Opparam[0] == '#13'){
+                        ret.push('#12')
+                    }else{
+                        ret.push(e.Opparam[0])
+                    }
+                    ret.push(e.Opparam[1])
+                    ret.push(e.Opparam[2])
+
+
+                }
+            }
+        }
+        return ret
+    }
     OperatorEquivalence(srcstatement, tarstatement){
-        let srctablel = []
-        let srctabler = []
-
-        for (const e of srcstatement.leftexps){
-            // console.log(e)
-            if(e.operator){
-                if(e.Opparam){
-                    if(e.Opparam.length != 0){
-                        for(const v of e.Opparam){
-                            srctablel.push(v)
-                        }
-                    }
-                }
-                srctablel.push(e.operator)
-            }
-        }
-        for (const e of srcstatement.rightexps){
-            if(e.operator){
-                if(e.Opparam){
-                    if(e.Opparam.length != 0)
-                    {
-                        for(const v of e.Opparam){
-                            srctabler.push(v)
-                        }
-                    }
-                }
-                srctabler.push(e.operator)
-            }
-        }
-
-        let tartablel = []
-        let tartabler = []
-
-        for (const e of tarstatement.leftexps){
-            if(e.operator){
-                if(e.Opparam){
-                    if(e.Opparam.lengt != 0){
-                        for(const v of e.Opparam){
-                            tartablel.push(v)
-                        }
-                    }
-                }
-                tartablel.push(e.operator)
-
-            }
-        }
-        for (const e of tarstatement.rightexps){
-            if(e.operator){
-                if(e.Opparam){
-                    if(e.Opparam.length != 0){
-                        for(const v of e.Opparam){
-                            tartabler.push(v)
-                        }
-                    }
-                }
-                tartabler.push(e.operator)
-
-            }
-        }
+        let srctablel = this.operatorlist(srcstatement.leftexps)
+        let srctabler = this.operatorlist(srcstatement.rightexps)
+        let tartablel = this.operatorlist(tarstatement.leftexps)
+        let tartabler = this.operatorlist(tarstatement.rightexps)
         //checking
         if(tartablel.length != srctablel.length && tartablel.length != srctabler.length ) return false
         if(tartabler.length != srctablel.length && tartabler.length != srctabler.length ) return false
@@ -1005,40 +978,21 @@ class ProofAssistant {
         return true
     }
 
+    
+    operandlist(src){
+        let ret =[]
+        for (const e of src){
+            if(e.operands){
+                for(const opr of e.operands) {
+                    ret.push(opr)
+                }
+            }
+        }
+        return ret
+    }
     OperandEquivalence(srcstatement, tarstatement){
-        let srctable = []
-        for (const e of srcstatement.leftexps){
-            if(e.operands){
-                for(const opr of e.operands) {
-                    srctable.push(opr)
-                }
-            }
-        }
-        for (const e of srcstatement.rightexps){
-            if(e.operands){
-                for(const opr of e.operands) {
-                    srctable.push(opr)
-                }
-            }
-        }
-
-        let tartable = []
-        for (const e of tarstatement.leftexps){
-            if(e.operands){
-                for(const opr of e.operands) {
-                    tartable.push(opr)
-                }
-            }
-        }
-        for (const e of tarstatement.rightexps){
-            if(e.operands){
-                for(const opr of e.operands) {
-                    tartable.push(opr)
-                }
-            }
-        }
-
-        // console.log(srctable,tartable)
+        let srctable = this.operandlist(srcstatement.leftexps).concat(this.operandlist(srcstatement.rightexps))
+        let tartable = this.operandlist(tarstatement.leftexps).concat(this.operandlist(tarstatement.rightexps))
         if(tartable.length != srctable.length) return false 
 
         let sit = {}
@@ -1090,10 +1044,12 @@ class ProofAssistant {
                 //check if Opparam match
                 if(src[i].Opparam){
                     if(!tar[i].Opparam)return false
-                    if(src[i].Opparam.length > 0 && tar[i].Opparam.length > 0){
-                        if(src[i].Opparam[0] != tar[i].Opparam[0]) return false
-                        if(src[i].Opparam[1] != tar[i].Opparam[1]) return false 
-                        if(src[i].Opparam[2] != tar[i].Opparam[2]) return false
+                    let j = 0
+                    while(j < src[i].Opparam.length){
+                        if(src[i].Opparam[j] != tar[i].Opparam[j]){
+                            return false 
+                        } 
+                        j += 1
                     }
                 }
                 
@@ -1333,7 +1289,6 @@ class ProofAssistant {
         let max = 0
         while(i < ret.length){
             let j = 0
-            // console.log('here', ret[i])
             if(ret[i].operands){
                 if(ret[i].operands.length > 0){
                     while(j < ret[i].operands.length)
@@ -1367,6 +1322,7 @@ class ProofAssistant {
 
     PrintAllRules(){
         for(const rule of this.allrules){
+            // console.log(rule)
             console.log(this.RuleToString(rule))
         }
     }

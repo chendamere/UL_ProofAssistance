@@ -22,28 +22,42 @@ import ProofStrategy from './ProofStrategy.js';
 
 let latexparser = new LatexParser();
 let allrules = [];
+
 let tstatements = []
 fs.readdirSync('./axiom/').forEach(file => {
     const chapter = latexparser.ParseFile( './axiom/', fs.readFileSync, file, false)
     for(const c of chapter.rules){
-        // console.log(c)
         let ret = latexparser.Parse(c)
-        // console.log(ret)
         allrules.push(ret)
     }
 })
+
 let allexps = [];
 fs.readdirSync('./theorems/').forEach(file => {
-    let statmentexps = [latexparser.ParseFile( './theorems/', fs.readFileSync, file, true)]
-    let c = latexparser.ParseFile( './theorems/', fs.readFileSync, file, false)
-    const exps = latexparser.ChaptertoExps(statmentexps)
+    let texps=[]
+    let tts =[]
+    let chapter = latexparser.ParseFile( './theorems/', fs.readFileSync, file, false)
+    let exps = latexparser.trimExps(latexparser.ParseFile( './theorems/', fs.readFileSync, file, true))
     for(const e of exps){
-        allexps.push(e.trim())
+        // console.log(e)
+        let temp =[]
+        for(const exp of e) {
+            temp.push(exp.trim())
+        }
+        texps.push(temp)
     }
-    for(const e of c.rules){
-        tstatements.push(latexparser.Parse(e))
+    for(const e of chapter.rules){
+        tts.push(latexparser.Parse(e))
     }
+    tstatements.push(tts)
+    allexps.push(texps)
 })
-let pf = new ProofAssistant(allrules, latexparser, allexps);
-let ps = new ProofStrategy(pf, tstatements)
+// console.log(allexps[0])
+// // console.log(allexps[0].length, tstatements[0].length)
+let pf = new ProofAssistant(allrules, latexparser, [])
+// console.log(allexps)
+
+let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()
+
+// pf.PrintAllRules()
