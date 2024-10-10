@@ -13,11 +13,11 @@ class ProofAssistant {
         this.parser = parser
         this.Exps = Exps
         this.AllOperators =  this.Get_all_operator()
-        this.unaryOperators = ['#1','#2','#3','#4','#5','#9']
-        this.binaryOperators = ['#8','#6','#7','#10', '#28', '#17']
-        this.BrOperators = ['#12', '#13']
+        this.unaryOperators = this.parser.unaryOperators
+        this.binaryOperators = this.parser.binaryOperators
+        this.BrOperators =  this.parser.branch
+        // console.log(this.BrOperators)
         this.AddSpacetoExp()
-
     }
 
     matchbr(tempv){
@@ -38,16 +38,15 @@ class ProofAssistant {
     Proving(start, end, debug= false) {
 
         //operands are not binded yet
-        if(debug){
-            console.log('------Proving-------')
-            console.log('start: ', start, 'end: ', end)
-        }
+        // if(debug){
+        //     console.log('------Proving-------')
+        //     console.log('start: ', start, 'end: ', end)
+        // }
         let tempv = this.genRule('!'+start+'@'+end)
         if (this.Same(tempv.leftexps , tempv.rightexps)) return 1
         let tempv2 = this.genRule('!'+start+'@'+end)
         if(!this.isRule(tempv)){
             let rules = this.trim_and_check(tempv)      
-            console.log(rules)      
             
             let check = -1
             let i =0
@@ -55,6 +54,7 @@ class ProofAssistant {
                 if(rules[i] != -1)
                 {
                     check =rules[i]
+                    // console.log(this.RuleToString(check))
                 }
                 i+=1
             }
@@ -127,7 +127,7 @@ class ProofAssistant {
             if(e){
                 if(e.Opparam){
                     if(e.Opparam[0]){
-                        if(e.Opparam[0] == '#12' || e.Opparam[0] == '#13'){
+                        if(this.BrOperators.includes(e.Opparam[0])){
                             
             
                             br = e.Opparam
@@ -211,7 +211,7 @@ class ProofAssistant {
                         // console.log(left[i].Opparam[0], i)
                         if(l[i].Opparam[0] != ''){
 
-                            if(l[i].Opparam[0] == '#12' || l[i].Opparam[0] == '#13'){
+                            if(this.parser.branch.includes(l[i].Opparam[0])){
                                 // console.log('here')
 
                                 lbr = i
@@ -361,13 +361,11 @@ class ProofAssistant {
         let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
         let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule))
 
-        // console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
-        // console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
+        console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
+        console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
         // throw new Error('here')
 
         //dont pass the original rule, pass copies of the expression
-        // console.log('t: ', this.RuleToString(t), this.ExpToString(trimbrfront[0]), this.ExpToString(trimbrfront[1]))
-        // console.log('trimfront: ', this.ExpToString(trimbrfront.leftexps), this.ExpToString(trimbrfront.rightexps))
         let ret =[]
 
         if(this.isRule(parsed_trimrule)){
@@ -383,7 +381,7 @@ class ProofAssistant {
         const r = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
         let trimbr = this.TrimBranch(r)
-        // console.log('after trim: ', this.RuleToString(parsed_newrule))
+        // console.log('after trim: ', this.RuleToString(trimbr))
 
         // console.log('trimbr0:', this.RuleToString(trimbr[0]),'trimbr1:',  this.RuleToString(trimbr[1]))
         if(trimbr[0] != -1){
@@ -477,7 +475,7 @@ class ProofAssistant {
         while(ti < exp.length) {
             if(exp[ti].Opparam){
                 if(exp[ti].Opparam[0]){
-                    if(exp[ti].Opparam[0] === '#13' || exp[ti].Opparam[0] === '#12'){
+                    if(this.BrOperators.includes(exp[ti].Opparam[0])){
                         if(ti > bri){
                             if(br.prev != -1){
                                 bri = br.prev.index
@@ -523,10 +521,28 @@ class ProofAssistant {
         let rightbr = this.getlastbr(pright)
         let lretindex = leftbr.index
         let rretindex = rightbr.index
-        // console.log(leftbr,rightbr)
+        // console.log(leftbr,' || ',rightbr)
         while(true) {
 
+
             //exit condition
+
+            if(lretindex > -1 && lefti >= lretindex){
+                frontstop = true
+                // console.log(lretindex,' || ',lefti)
+
+            }
+            if(rretindex > -1 && righti >= rretindex){
+                frontstop = true
+            }
+
+            // if(lretindex > -1 && leftendi > lretindex+leftbr.top +leftbr.bot){
+            //     endstop = true
+            // }
+            // if(rretindex > -1 && rightendi > rretindex+rightbr.top +rightbr.bot){
+            //     endstop = true
+            // }
+
             if(frontstop && endstop) break
 
             //trim front once
@@ -555,6 +571,7 @@ class ProofAssistant {
             if(!endstop && this.Same([pleft[leftendi]],[pright[rightendi]])){
                 //we have enter end of a branch, we are in bot expression by default, if same check last top exp
                 if(this.inBranch(leftbr,rightbr, leftendi,rightendi)){
+                    // console.log('inbr', pleft[leftendi],pright[rightendi], leftbr,rightbr, leftendi,rightendi)
                     //botsame
                     if(this.Same([pleft[leftendi]],[pright[rightendi]])){
                         //go to the top expression 
@@ -616,6 +633,9 @@ class ProofAssistant {
                     // console.log('x', this.ExpToString(retl), this.ExpToString(retr))
                     // console.log('!!!2', pleft[leftendi], pright[rightendi])
 
+                    if(this.inBranch(leftbr,leftbr, leftendi, leftendi) ^ this.inBranch(rightbr,rightbr, rightendi, rightendi)){
+                        endstop =true
+                    }
                     retl.splice(retl.length-1,1)
                     retr.splice(retr.length-1,1)
                     // console.log('x2', this.ExpToString(retl), this.ExpToString(retr))
@@ -638,7 +658,7 @@ class ProofAssistant {
     }
 
     inBranch(leftbr,rightbr, leftendi,rightendi) {
-        return (leftbr.prev != -1 && rightbr.prev != -1) 
+        return (leftbr.index > -1 && rightbr.index > -1) 
         && (leftendi <= leftbr.index+leftbr.top+leftbr.bot) 
         &&(leftendi >= leftbr.index+ leftbr.top) 
         && (rightendi<= rightbr.index+rightbr.top+rightbr.bot)
@@ -943,33 +963,77 @@ class ProofAssistant {
         return false 
     }
 
-    operatorlist(src, brflag=false){
+    operatorlist(src, opt){
         let ret =[]
         for (const e of src){
-            if(e.operator){
-                ret.push(e.operator)
-            }
             if(e.Opparam){
-                if(e.Opparam.length != 0){
-                    if(brflag && e.Opparam[0] == '#13'){
-                        ret.push('#12')
-                    }else{
-                        ret.push(e.Opparam[0])
-                    }
+                if(e.Opparam.length!=0){
+                    // console.log(e.Opparam)
+                    // if(opt && e.Opparam[0] == '#12'){
+                    //     ret.push('#13')
+                    // }else{
+                    //     ret.push(e.Opparam[0])
+                    // }
+                    ret.push(e.Opparam[0])
                     ret.push(e.Opparam[1])
                     ret.push(e.Opparam[2])
-
-
                 }
+            }
+            if(e.operator){
+                // if(e.Opparam){
+                //     if(e.Opparam.length!=0){
+                //         if(opt && e.Opparam[0] == '#12'){
+                //             ret.push(opt)
+                //         }
+                //         else{
+                //             ret.push(e.operator)
+                //         }
+                //     }
+                //     else{
+                //         ret.push(e.operator)
+                //     }
+                // }
+                // else{
+                    ret.push(e.operator)
+                // }
             }
         }
         return ret
     }
+
+    getBrOpt(src){
+        for (const e of src){
+            if(e.Opparam){
+                if(e.operator.length != 0)
+                    return e.operator
+            }
+        }
+        return  
+    }
+
     OperatorEquivalence(srcstatement, tarstatement){
         let srctablel = this.operatorlist(srcstatement.leftexps)
         let srctabler = this.operatorlist(srcstatement.rightexps)
-        let tartablel = this.operatorlist(tarstatement.leftexps)
-        let tartabler = this.operatorlist(tarstatement.rightexps)
+        let opt = this.getBrOpt(srcstatement.leftexps)
+        if(!opt){
+            opt = this.getBrOpt(srcstatement.rightexps)
+        }
+
+
+
+        //if rule is Blb, then add operator to tartable if operator exists
+        //if src has #13, then treat #12 in tar as #13
+        let tartablel = this.operatorlist(tarstatement.leftexps, opt)
+        let tartabler = this.operatorlist(tarstatement.rightexps, opt)
+        if(opt == '#17' && tartablel[0] == '#102'){
+            console.log('!!!!! l', tartablel )
+            console.log('!!!!! r', tartabler )
+        }
+        // if(opt){
+        //     console.log('!!!!!!!!!!!!!!!!!!!!!!', opt, )
+        //     console.log('!!!!! l', tartablel )
+        //     console.log('!!!!! r', tartabler )
+        // }
         //checking
         if(tartablel.length != srctablel.length && tartablel.length != srctabler.length ) return false
         if(tartabler.length != srctablel.length && tartabler.length != srctabler.length ) return false

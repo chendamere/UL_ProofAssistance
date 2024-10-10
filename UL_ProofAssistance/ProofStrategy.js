@@ -147,6 +147,8 @@ export default class ProofStrategy {
     provefromstack(end, p, q, stackindex, alt, debug=false){
         let i = stackindex
         while ( i < this.expstack.length-1 && i < end){
+            // console.log(i + this.expioffset, end)
+            if(i + this.expioffset>= end) break
 
             //get the changing operator from beginning lines, if the changed lines are not same, then repeat the process with end line
             let l = this.expstack[i][0]

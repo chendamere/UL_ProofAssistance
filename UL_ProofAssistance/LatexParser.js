@@ -3,7 +3,10 @@ class Parser {
         this.variables = {};
         this.tokens = {}
         this.endc = [' ', ',', '(', ')', '{', '}']
-        this.branch = ['#12', '#13']
+        this.branch =[]
+        this.tokeni = 0
+        this.unaryOperators = []
+        this.binaryOperators = []
     }
 
 
@@ -269,9 +272,14 @@ class LatexParser extends Parser {
     //second order normalize
     RuleNormalize = (line) => {
         let ret = line 
+        // console.log('1',ret)
         ret = this.Convert_branch_expressions(ret)
+        // console.log('1',ret)
         ret = this.Reorder_operations(ret)
+        // console.log('2',ret)
         ret = this.Operands_numbering(ret)
+        // console.log('3',ret)
+
         ret = '!' + ret.trim()
 
         return ret
@@ -386,23 +394,27 @@ class LatexParser extends Parser {
         let replace = ''
         while(i < line.length){
             c = line[i]
-            if(c != ',' && c!= '{' && c != '}') {
-                operation += c 
-            }
-            else if(c == ',' || c == '{' || c  == '}'){
 
-                replace = this.Reorder( operation, line.slice(i))
-                
+            if(c == ',' || c == '{' || c  == '}'){
+
+                replace = this.Reorder(operation, line.slice(i))
                 if (replace.trim() != '') {
+                    // console.log('replace: ', replace, 'operation: ', operation)
+
                     i+=1
                     ret += replace + ','
-                    if(replace.includes('#13') || replace.includes('#12')){
-                        while(line[i] != '}') i+=1
+                    for(const br of this.branch){
+                        if(replace.includes(br)){
+                            while(line[i] != '}') i+=1
+                            break
+                        }
                     }
-                    
                     operation = ''
                     continue;
                 }     
+            }
+            else{
+                operation += c 
             }
             i+=1
 
@@ -440,11 +452,34 @@ class LatexParser extends Parser {
         let operand = ''
         let i = 0
         let found = false
-        if(!operation.includes('#13') && !operation.includes('#12'))
-        {
-
-            while(i < operation.length)
-            {
+        for(const br of this.branch){
+            if(operation.includes(br)){
+                while(i < rest.length && rest[i] != '}'){  
+                    if(!found && (rest[i] == '&' || rest[i].toLowerCase().match(/[a-z]/i))){
+                        found = true
+                    }
+                    if(found) {
+                        operand += rest[i]
+                    
+                        if(rest[i] == '#' || rest[i] == ' '){
+                            if(operand != ''){
+                                found = false 
+                                ret += operand.trim() + ' '
+                                operand = ''
+                            }
+                        }
+                    }
+                    i+= 1
+                }
+                if(operand != ''){
+                    ret += operand.trim()
+                }
+                break
+            }
+        }
+        //no br
+        if(!found){
+            while(i < operation.length){
                 //skip operators
                 if(operation[i] == '#'){
                     if(operand.trim() != ''){
@@ -455,7 +490,7 @@ class LatexParser extends Parser {
                         i += 1 
                     }
                 }
-
+    
                 //add until white space 
                 if(operation[i] != ' ' && i < operation.length){        
                     operand += operation[i]
@@ -466,41 +501,14 @@ class LatexParser extends Parser {
                         operand = ''
                     }
                 }
-
+    
                 i+=1
             }
-
+        
             // edge cases
             if(operand.trim() != ''){
                 ret += operand + ' '
                 operand = ''
-            }
-
-        }
-        else if(operation.trim() == '#13' || operation.trim() == '#12')
-        {
-            // if (i!=0) console.log('parsing twice')
-            while(i < rest.length && rest[i] != '}')
-            {  
-                if(!found && (rest[i] == '&' || rest[i].toLowerCase().match(/[a-z]/i))){
-                    found = true
-                }
-        
-                if (found) {
-                    operand += rest[i]
-                
-                    if(rest[i] == '#' || rest[i] == ' '){
-                        if(operand != ''){
-                            found = false 
-                            ret += operand.trim() + ' '
-                            operand = ''
-                        }
-                    }
-                }
-                i+= 1
-            }
-            if(operand != ''){
-                ret += operand.trim()
             }
         }
         return ret.trim()
@@ -536,7 +544,7 @@ class LatexParser extends Parser {
 
         //branch operators
         //if #12 or #13 then look for optional additional operator
-        if(operator == '#12' || operator == '#13') {
+        if(this.branch.includes(operator)) {
             Broperator = operator
             operator = ''
         }
@@ -612,8 +620,31 @@ class LatexParser extends Parser {
 
     }
 
+
+    AddBr(ret,src){
+        let tok = '#'+this.tokeni.toString()
+        this.branch.indexOf(tok) === -1 ? this.branch.push(tok) : -1
+        return this.AddToken(ret, src)
+    }
+    AddUnary(ret,src){
+        let tok = '#'+this.tokeni.toString()
+        this.unaryOperators.indexOf(tok) === -1 ? this.unaryOperators.push(tok) : -1
+        return this.AddToken(ret, src)
+    }
+    AddBin(ret,src){
+        let tok = '#'+this.tokeni.toString()
+        this.binaryOperators.indexOf(tok) === -1 ? this.binaryOperators.push(tok) : -1
+        return this.AddToken(ret, src)
+    }
+    AddToken(ret, src){
+        // console.log('#'+this.tokeni.toString())
+        let x = ret.replaceAll(src, '#'+this.tokeni.toString())
+        this.tokeni += 1
+        return x
+    }
     Convert_operators = (line) =>  {
-        let ret = line 
+        let ret = line
+        this.tokeni = 1
 
         //longer name are replaced first
 
@@ -621,91 +652,88 @@ class LatexParser extends Parser {
         ret = ret.replaceAll ('_{10}'  , '10' )
         ret = ret.replaceAll ('_{20}'  , '20' )
 
+        ret = this.AddUnary(ret,'\\Og')
+        ret = this.AddUnary(ret,'\\Ot')
+        ret = this.AddUnary(ret,'\\On')
+        ret = this.AddUnary(ret,'\\Op')
+        ret = this.AddUnary(ret,'\\Os')
+        ret = this.AddBin(ret,'\\Oc')
+        ret = this.AddBin(ret,'\\Od')
+        ret = this.AddBin(ret,'\\Ob')
+        ret = this.AddBin(ret,'\\Oa')
+        ret = this.AddBin(ret,'\\Oe')
+        ret = this.AddToken(ret,'\\Or')
 
-        ret = ret.replaceAll ('+'  , ' #200 ' )
-        ret = ret.replaceAll ('-'  , ' #201 ' )
-        ret = ret.replaceAll ('\\times'  , ' #202 ' )
+        ret = this.AddBin(ret,'\\Ps')
+        ret = this.AddUnary(ret,'\\Tc')
+        ret = this.AddUnary(ret,'\\Tt')
+        ret = this.AddBin(ret,'\\Pe')
+        ret = this.AddBin(ret,'\\Pp')
 
+        ret = this.AddBin(ret,'\\Pu' )
+        
+        ret = this.AddBin(ret,'\\Pn' )
+        ret = this.AddBin(ret,'\\Pc' )
+        ret = this.AddBin(ret,'\\Pb' )
+
+        ret = ret.replaceAll('\\It', '&It')
+
+        ret = this.AddUnary (ret,'&Fam' )
+        ret = this.AddUnary (ret,'Rd_i')
+        ret = this.AddUnary (ret,'Rd_j'  )
+        ret = this.AddUnary (ret,'Rcpo' )
+
+        ret = this.AddToken (ret,'IsCpo'  )
+        ret = this.AddToken (ret,'IsCpm' )
+        ret = this.AddToken (ret,'Rcpm'  )
+
+        ret = this.AddToken (ret,'Ins')
+        ret = this.AddToken (ret,'Del')
+        ret = this.AddToken (ret,'&Tm')
+        ret = this.AddToken (ret,'Cpo')
+        ret = ret.replaceAll('\\Ip', '&Ip')
+        ret = this.AddToken(ret,'In')
+        ret = ret.replaceAll('\\&In', '&In')
+
+        ret = this.AddBin(ret,'\\nPnm')
+        ret = this.AddToken (ret,'\\nPdx')
+        ret = this.AddBin(ret,'\\nPne')
+        ret = this.AddBin(ret,'\\nPnl')
+
+        ret = this.AddBin(ret,'\\Pnl')
+        ret = this.AddBin(ret,'\\Pne')
+        ret = this.AddBin(ret,'\\nPb')
+        ret = this.AddBin(ret,'\\nPp')
+        ret = this.AddBin(ret,'\\nPn')
+        ret = this.AddBin(ret,'\\nPe')
+
+        ret = this.AddToken(ret,'\\nPu')
+        ret = this.AddToken(ret,'\\nPs')
+        ret = this.AddToken(ret,'\\nPc')
+        ret = this.AddToken(ret,'\\Pnm')
+        ret = this.AddToken (ret,'\\sim' )
+        ret = this.AddToken (ret,'\\Pdx' ) 
+        ret = this.AddToken (ret,'Pdx') 
+
+        ret = ret.replaceAll ('!Pdx' , 'nPdx' ) 
+        ret = this.AddBin (ret,'+'  )
+        ret = this.AddBin (ret,'-'  )
+        ret = this.AddBin (ret,'\\times')
+
+
+        ret = this.AddToken (ret,'\\Ri' )
+        
+        ret = this.AddToken (ret,'Rd'  )
+        ret = this.AddToken (ret,'Rc'  )
+
+        ret = this.Convert_equiv(ret)
+        ret = this.AddToken (ret,'R\\_'  )
+        ret = this.AddToken (ret,'R'  )
+        
         ret = ret.replaceAll (')'  ,' ' )
         ret = ret.replaceAll ('('  ,' ' )
         ret = ret.replaceAll (':'  , ' ' )
         ret = ret.replaceAll (';'  , ' ' )
-
-        ret = ret.replaceAll('\\It', '&It')
-
-        ret = ret.replaceAll ('&Fam'  , '#100' )
-        ret = ret.replaceAll ('Rd_i'  , '#101' )
-        ret = ret.replaceAll ('Rd_j'  , '#102' )
-        ret = ret.replaceAll ('Rcpo'  , '#103' )
-
-        ret = ret.replaceAll ('IsCpo'  , '#104' )
-        ret = ret.replaceAll ('IsCpm'  , '#105' )
-        ret = ret.replaceAll ('Rcpm'  , '#105' )
-
-        ret = ret.replaceAll ('Ins'  , '#106' )
-        ret = ret.replaceAll ('Del'  , '#107' )
-        ret = ret.replaceAll ('&Tm'  , '#108' )
-        ret = ret.replaceAll ('Cpo'  , '#109' )
-        ret = ret.replaceAll('\\Ip', '&Ip')
-        ret = ret.replaceAll('In', '#41')
-        ret = ret.replaceAll('\\&In', '&In')
-
-        ret = ret.replaceAll('\\nPnm',"#35")
-        ret = ret.replaceAll ('\\nPdx', '#40' )
-        ret = ret.replaceAll('\\nPne',"#29")
-        ret = ret.replaceAll('\\nPnl',"#30")
-
-        ret = ret.replaceAll('\\Pnl', '#23' )
-        ret = ret.replaceAll('\\Pne', '#24' )
-        ret = ret.replaceAll('\\nPb','#25')
-        ret = ret.replaceAll('\\nPp','#26')
-        ret = ret.replaceAll('\\nPn','#27')
-        ret = ret.replaceAll('\\nPe',"#28")
-
-        ret = ret.replaceAll('\\nPu',"#31")
-        ret = ret.replaceAll('\\nPs',"#32")
-        ret = ret.replaceAll('\\nPc','#33')
-        ret = ret.replaceAll('\\Pnm',"#34")
-        ret = ret.replaceAll ('\\sim' , '#36' )
-        ret = ret.replaceAll ('\\Pdx' , '#39' ) 
-        ret = ret.replaceAll ('Pdx' , '#39' ) 
-
-        ret = ret.replaceAll ('!Pdx' , 'nPdx' ) 
-
-
-        ret = ret.replaceAll('\\Og', '#1')
-        ret = ret.replaceAll('\\Ot', '#2')
-        ret = ret.replaceAll('\\On', '#3')
-        ret = ret.replaceAll('\\Op', '#4')
-        ret = ret.replaceAll('\\Os', '#5')
-        ret = ret.replaceAll('\\Oc', '#6')
-        ret = ret.replaceAll('\\Od', '#7')
-        ret = ret.replaceAll('\\Ob', '#8')
-        ret = ret.replaceAll('\\Oa', '#9')
-        ret = ret.replaceAll('\\Oe', '#10')
-        ret = ret.replaceAll('\\Or', '#11')
-
-        ret = ret.replaceAll('\\Ps' , '#14')
-        ret = ret.replaceAll('\\Tc' , '#15')
-        ret = ret.replaceAll('\\Tt' , '#16')
-        ret = ret.replaceAll('\\Pe' , '#17')
-        ret = ret.replaceAll('\\Pp' , '#18')
-
-        ret = ret.replaceAll('\\Pu' , '#19')
-        
-        ret = ret.replaceAll('\\Pn' , '#20')
-        ret = ret.replaceAll('\\Pc' , '#21')
-        ret = ret.replaceAll('\\Pb' , '#22')
-
-
-        ret = ret.replaceAll ('\\Ri'  , '#37' )
-        
-        ret = ret.replaceAll ('Rd'  , '#38' )
-        ret = ret.replaceAll ('Rc'  , '#43' )
-
-        ret = this.Convert_equiv(ret)
-        ret = ret.replaceAll ('R\\_'  , '#44' )
-        ret = ret.replaceAll ('R'  , '#42' )
 
         return ret
     }
@@ -794,17 +822,25 @@ class LatexParser extends Parser {
     }
     Convert_branch_expressions = (line) => {
         //return string
-        let ret = line      
-        ret = ret.replaceAll('\\Bs', '#13')
+        let ret = line 
+        this.tokeni = 100     
+        ret = this.AddBr(ret,'\\Bs')
+        this.tokeni -=1
+        ret = this.AddBr(ret,'\\Bb')
 
-        ret = ret.replaceAll('\\Bb', '#13')
-        ret = ret.replaceAll('\\Blb', '#13')
-        ret = ret.replaceAll('\\Bls', '#13')
+        ret = this.AddBr(ret,'\\Blb')
+        this.tokeni -=1
+        ret = this.AddBr(ret,'\\Bls')
 
-        ret = ret.replaceAll('\\Brs', '#12{}')
-        ret = ret.replaceAll('\\Br', '#12')
-        ret = ret.replaceAll('\\Brb', '#12')
 
+        ret = ret.replaceAll('\\Brs', '\\Br')
+        ret = this.AddBr(ret,'\\Br')
+        this.tokeni -=1
+        ret = this.AddBr(ret,'\\Brb')
+
+        this.tokeni =1
+
+        // console.log('2', ret)
         return ret
     }
 }

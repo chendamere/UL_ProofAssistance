@@ -61,3 +61,8 @@ let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()
 
 // pf.PrintAllRules()
+
+// console.log(latexparser.branch)
+// console.log(pf.parser.branch)
+// console.log(latexparser.unaryOperators)
+// console.log(latexparser.binaryOperators)
