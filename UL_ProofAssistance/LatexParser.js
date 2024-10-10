@@ -7,6 +7,8 @@ class Parser {
         this.tokeni = 0
         this.unaryOperators = []
         this.binaryOperators = []
+        this.cv = ''
+        this.tv = ''
     }
 
 
@@ -665,14 +667,20 @@ class LatexParser extends Parser {
         ret = this.AddToken(ret,'\\Or')
 
         ret = this.AddBin(ret,'\\Ps')
+
+        // 
+        this.cv = '#'+this.tokeni
         ret = this.AddUnary(ret,'\\Tc')
+        this.tv = '#'+this.tokeni
+
         ret = this.AddUnary(ret,'\\Tt')
+
         ret = this.AddBin(ret,'\\Pe')
         ret = this.AddBin(ret,'\\Pp')
 
         ret = this.AddBin(ret,'\\Pu' )
         
-        ret = this.AddBin(ret,'\\Pn' )
+        ret = this.AddUnary(ret,'\\Pn' )
         ret = this.AddBin(ret,'\\Pc' )
         ret = this.AddBin(ret,'\\Pb' )
 

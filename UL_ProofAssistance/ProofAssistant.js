@@ -349,6 +349,7 @@ class ProofAssistant {
         const t = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
         //trimming will allow any rule that have same left and right to return true
+        // console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
 
         let [trimleft, trimright] = this.Trim(t)
         let long = trimleft
@@ -360,9 +361,10 @@ class ProofAssistant {
 
         let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
         let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule))
+        // console.log('parsed_trimrule1: ', trimrule)
 
-        console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
-        console.log('parsed_trimrule: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
+        // console.log('parsed_trimrule2: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
+
         // throw new Error('here')
 
         //dont pass the original rule, pass copies of the expression
@@ -381,13 +383,14 @@ class ProofAssistant {
         const r = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
         let trimbr = this.TrimBranch(r)
-        // console.log('after trim: ', this.RuleToString(trimbr))
+        // console.log('after trimbr: ', this.RuleToString(trimbr[0]), this.RuleToString(trimbr[1]))
 
         // console.log('trimbr0:', this.RuleToString(trimbr[0]),'trimbr1:',  this.RuleToString(trimbr[1]))
         if(trimbr[0] != -1){
             let trimagain1 = this.genRule('!'+this.RuleToString(trimbr[0]))
             if(this.isRule(trimagain1)){
                 // if(trimagain1.leftexps[0].operator && trimagain1.rightexps[0].operator){
+                    console.log(this.RuleToString(trimagain1), this.isRule(trimagain1))
                     ret.push(trimbr[0])
                     return ret
 
@@ -402,6 +405,8 @@ class ProofAssistant {
             
             if(this.isRule(trimagain2)){
                 // if(trimagain2.leftexps.operator && trimagain2.rightexps.operator){
+                    console.log(this.RuleToString(trimagain2), this.isRule(trimagain2))
+
                     ret.push(trimbr[1])
                     return ret
 
@@ -524,7 +529,7 @@ class ProofAssistant {
         // console.log(leftbr,' || ',rightbr)
         while(true) {
 
-
+            // console.log(pleft, pright)
             //exit condition
 
             if(lretindex > -1 && lefti >= lretindex){
@@ -573,11 +578,14 @@ class ProofAssistant {
                 if(this.inBranch(leftbr,rightbr, leftendi,rightendi)){
                     // console.log('inbr', pleft[leftendi],pright[rightendi], leftbr,rightbr, leftendi,rightendi)
                     //botsame
-                    if(this.Same([pleft[leftendi]],[pright[rightendi]])){
+                    if(this.Same([pleft[leftbr.index+leftbr.top]],[pright[rightbr.index+rightbr.top]])){
                         //go to the top expression 
                         //top same
                         if(this.Same([pleft[leftendi - leftbr.bot]], [pright[rightendi - rightbr.bot]])){
-
+                            if(leftbr.bot ==0  || rightbr.bot == 0 || rightbr.top == 0 || rightbr.bot == 0){
+                                endstop = true 
+                                continue
+                            }
                             //splice last top expression
                             //if we slice bot first there should be no issue with indexing, because bot exps are the last exps
                             if(rightendi - righti != rretindex){
@@ -635,6 +643,7 @@ class ProofAssistant {
 
                     if(this.inBranch(leftbr,leftbr, leftendi, leftendi) ^ this.inBranch(rightbr,rightbr, rightendi, rightendi)){
                         endstop =true
+                        continue
                     }
                     retl.splice(retl.length-1,1)
                     retr.splice(retr.length-1,1)
@@ -831,7 +840,7 @@ class ProofAssistant {
             let t1 = rleft[i]
             let t2 = left[i]
             if(t1.operator){
-                if (t1.operator == '#15' ){
+                if (t1.operator == this.parser.cv){
                     //set up code var in table
                     if(!cvtable[t1.operands[ti]]){
                         cvtable[t1.operands[ti]] = []
@@ -884,7 +893,7 @@ class ProofAssistant {
         while(x < rright.length){
             let t1 = rright[x]
             if(t1.operator){
-                if(t1.operator =='#15')
+                if(t1.operator == this.parser.cv)
                 {
                     if(cvtable[t1.operands[0]]){
                         for(const e of cvtable[t1.operands[0]]){
@@ -911,8 +920,10 @@ class ProofAssistant {
     //--Equivalence--
     //isRule checks if rule exist or its commutative form exists in the rule table
     //code variables
-    isRule(relation){
-        // console.log('relation: ', this.RuleToString(relation))
+    isRule(relation, debug=false){
+        if(debug){
+            console.log('relation: ', this.RuleToString(relation))
+        }
         let left = relation.leftexps
         let right = relation.rightexps
         
@@ -924,11 +935,27 @@ class ProofAssistant {
             let rleft = rule.leftexps
             let rright = rule.rightexps
             // console.log(left,right, '|',rleft,rright)
+            if(debug){
+                console.log('begincv: ', this.RuleToString(relation))
+            }
             if(this.checkcv(left,right, rleft,rright)) return true
             if(this.checkcv(left,right, rright,rleft)) return true
             if(this.checkcv(right,left, rleft,rright)) return true
             if(this.checkcv(right,left, rright,rleft)) return true
 
+            
+            if(debug){
+                console.log('failed cv')
+            }
+
+
+            //tocheck if a rule that contains branch exoressions on either side is a rule, we need to check if source is a big branch
+            //if source is a big branch, then target can either be small right branch or small left branch
+            //maybe this process requires post cv conversion, so instead return true/false in checkcv(), we convert it first, check for branch, then check as usual.
+
+            //if src contains big bracket, then all target rule that contains small left bracket or small right bracket will be condidate
+
+            // 
             //lengths dont match, next rule
             if(left.length != rleft.length && left.length != rright.length) continue
             if(right.length != rright.length && right.length != rleft.length) continue
@@ -1025,10 +1052,10 @@ class ProofAssistant {
         //if src has #13, then treat #12 in tar as #13
         let tartablel = this.operatorlist(tarstatement.leftexps, opt)
         let tartabler = this.operatorlist(tarstatement.rightexps, opt)
-        if(opt == '#17' && tartablel[0] == '#102'){
-            console.log('!!!!! l', tartablel )
-            console.log('!!!!! r', tartabler )
-        }
+        // if(opt == '#17' && tartablel[0] == '#102'){
+        //     console.log('!!!!! l', tartablel )
+        //     console.log('!!!!! r', tartabler )
+        // }
         // if(opt){
         //     console.log('!!!!!!!!!!!!!!!!!!!!!!', opt, )
         //     console.log('!!!!! l', tartablel )
