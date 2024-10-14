@@ -525,17 +525,25 @@ class ProofAssistant {
         let rightbr = this.getlastbr(pright)
         let lretindex = leftbr.index
         let rretindex = rightbr.index
-        // console.log(leftbr,' || ',rightbr)
-        console.log(this.RuleToString(parsed_newrule))
+        let topstop = true
+        let botstop = true
+        let lbotoffset=0
+        let rbotoffset=0
+        if(leftbr.index != -1){
+            topstop = false
+            lbotoffset = leftbr.bot
+        }
+        if(rightbr.index != -1){
+            botstop = false
+            rbotoffset = rightbr.bot
+        }
+        console.log('start trimming: ', this.RuleToString(parsed_newrule))
         while(true) {
-
-            // console.log(pleft, pright)
+            console.log(this.ExpToString(retl), this.ExpToString(retr))
             //exit condition
 
             if(lretindex > -1 && lefti >= lretindex){
                 frontstop = true
-                // console.log(lretindex,' || ',lefti)
-
             }
             if(rretindex > -1 && righti >= rretindex){
                 frontstop = true
@@ -567,72 +575,61 @@ class ProofAssistant {
             
             //trim back once
             if(!endstop){
-                //we have enter end of a branch, we are in bot expression by default, if same check last top exp
-                if(this.inBranch(leftbr, leftendi) || this.inBranch(rightbr, rightendi)){
-                    if(!this.inBranch(leftbr, leftendi) ^ this.inBranch(rightbr, rightendi)){
-                        if(leftendi > leftbr.index + leftbr.top){
-                            if(this.Same([pleft[leftendi]],[pright[rightendi]])){
-                                if(leftendi - lefti != lretindex){
-                                    retl.splice(leftendi- lefti, 1)
-                                    retl[lretindex].Opparam[1] = '$' + (parseInt(retl[lretindex].Opparam[1][1])- 1).toString()
-                                    leftbr.bot -= 1
-                                }
-                                if(rightendi - righti != rretindex){
-                                    retr.splice(rightendi- righti, 1)
-                                    retr[rretindex].Opparam[1] = '$' + (parseInt(retr[rretindex].Opparam[1][1])- 1).toString()
-                                    rightbr.bot -= 1
-                                }
-                                                                  
-                            }
-                            
-                            let pruleb = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
-                            if(this.isRule(pruleb)) {
-                                return [retl, retr]
-                            }
 
-                            if(this.Same([pleft[leftendi-leftbr.bot]],[pright[rightendi-rightbr.bot]])){
-                                if(leftendi-(leftbr.bot)- lefti != lretindex){
-                                    retl.splice(leftendi-(leftbr.bot)- lefti, 1)
-                                    retl[lretindex].Opparam[2] = '$' + (parseInt(retl[lretindex].Opparam[2][1])- 1).toString()
-                                    leftbr.top -= 1
 
-                                }
-                                if(rightendi-(rightbr.bot)- righti != rretindex){
-                                    retr.splice(rightendi-(rightbr.bot)- righti, 1)
-                                    retr[rretindex].Opparam[2] = '$' + (parseInt(retr[rretindex].Opparam[2][1])- 1).toString()
-                                    rightbr.top -= 1
-
-                                }
-                            }
-
-                            
-                            let prulet = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
-                            if(this.isRule(prulet)) {
-                                return [retl, retr]
-                            }
-
-                            rightendi -= 1
+                if(!botstop){
+                    console.log('botcheck: ', this.inBotBranch(leftbr,leftendi) , (this.inBotBranch(rightbr, rightendi)) , this.Same([pleft[leftendi]],[pright[rightendi]]))
+                    if(this.inBotBranch(leftbr,leftendi) && (this.inBotBranch(rightbr, rightendi)) && this.Same([pleft[leftendi]],[pright[rightendi]])){
+                        if(leftendi-(leftbr.bot)- lefti != lretindex){
+                            retl.splice(leftendi- lefti, 1)
+                            retl[lretindex].Opparam[1] = '$' + (parseInt(retl[lretindex].Opparam[2][1])- 1).toString()
+                            leftbr.bot -= 1
                         }
-
-
-                                // //edge case
-                                // if(leftbr.bot == 0 && leftbr.top == 0 && rightbr.bot == 0 && rightbr.top == 0 )
-                                // {
-                                //     retl.splice(retl.length-1, 1)
-                                //     retr.splice(retr.length-1, 1)
-                                // }
-                                // let prule2 = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
-
-                                // if(this.isRule(prule2)) {
-
-                                //     return [retl, retr]
-                                // }
-                            
+                        if(rightendi-(rightbr.bot)- righti != rretindex){
+                            retr.splice(rightendi- righti, 1)
+                            retr[rretindex].Opparam[1] = '$' + (parseInt(retr[rretindex].Opparam[2][1])- 1).toString()
+                            rightbr.bot -= 1
+                        }       
+                        let pruleb = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
+                        if(this.isRule(pruleb)) {
+                            return [retl, retr]
+                        } 
                     }
-                    
-                    
-                }              
-                else{
+                    else{
+                        botstop = true
+                    }                   
+                } 
+                
+                if(!topstop){
+                    console.log('topcheck: ', this.inTopBranch(leftbr,leftendi, lbotoffset), (this.inTopBranch(rightbr, rightendi, rbotoffset)), this.Same([pleft[leftendi-lbotoffset]],[pright[rightendi - rbotoffset]]))
+                    // console.log(this.ExpToString([pleft[leftendi-lbotoffset]]), this.ExpToString([pright[rightendi-rbotoffset]]))
+                    // console.log(this.inTopBranch(leftbr,leftendi, lbotoffset), leftbr, leftendi, lbotoffset)
+                    // console.log(this.inTopBranch(rightbr,rightendi, rbotoffset), rightbr, rightendi, rbotoffset)
+                    if(this.inTopBranch(leftbr,leftendi, lbotoffset) && (this.inTopBranch(rightbr, rightendi, rbotoffset) && this.Same([pleft[leftendi-lbotoffset]],[pright[rightendi- rbotoffset]]))){
+                        if(leftendi - lefti != lretindex){
+                            retl.splice(leftendi- lefti, 1)
+                            retl[lretindex].Opparam[1] = '$' + (parseInt(retl[lretindex].Opparam[1][1])- 1).toString()
+                            leftbr.top -= 1
+                        }
+                        if(rightendi - righti != rretindex){
+                            retr.splice(rightendi- righti, 1)
+                            retr[rretindex].Opparam[1] = '$' + (parseInt(retr[rretindex].Opparam[1][1])- 1).toString()
+                            rightbr.top -= 1
+                        }
+                        let pruleb = this.Operands_normalize(this.genRule('!'+this.ExpToString(retl) + '@'+this.ExpToString(retr)))
+                        if(this.isRule(pruleb)) {
+                            return [retl, retr]
+                        }   
+                    }
+                    else{
+                        topstop = true
+                    }                 
+                }         
+                if(!topstop && !botstop){
+                    leftendi -= 2
+                    rightendi -= 2
+                }                               
+                if(topstop && botstop){
                     //trim end like usual
                     if(this.Same([pleft[leftendi]],[pright[rightendi]])){
                         retl.splice(retl.length-1,1)
@@ -663,6 +660,22 @@ class ProofAssistant {
         return (br.index > -1) 
         && (i <= br.index+br.top+br.bot) 
         && (i >= br.index+ br.top) 
+    }
+
+    inTopBranch(br, i, offset)
+    {
+        let reti = i - offset
+        return (br.index > -1) 
+        && (reti >= br.index)
+        && (reti <= br.index + br.top)
+        && (br.top != 0)
+    }
+    inBotBranch(br, i )
+    {
+        return (br.index > -1) 
+        && (i >= br.index + br.top)
+        && (i <= br.index + br.top+br.bot)
+        && (br.bot != 0)
     }
 
     //trim branch takes the last br operation found from left to right 
