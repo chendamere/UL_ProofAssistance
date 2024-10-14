@@ -58,9 +58,9 @@ let pf = new ProofAssistant(allrules, latexparser, [])
 // console.log(allexps)
 
 let ps = new ProofStrategy(pf, tstatements, allexps)
-// ps.Init()
+ps.Init()
 
-pf.PrintAllRules()
+// pf.PrintAllRules()
 // console.log(pf.isRule( pf.genRule('!,#11, @, #0,')))
 
 // console.log(latexparser.branch)

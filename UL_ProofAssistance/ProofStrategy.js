@@ -60,7 +60,7 @@ export default class ProofStrategy {
                 continue
             }
             
-            console.log('proveExp failed, trying provefromstack',)
+            console.log('proveExp failed, trying provefromstack')
             // this.pf.PrintAllRules()
             ret = this.provefromstack(expi+this.expioffset, p, q, stackindex, debugging)
             if(ret != -1){
