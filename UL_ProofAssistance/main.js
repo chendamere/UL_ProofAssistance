@@ -55,7 +55,7 @@ fs.readdirSync('./theorems/').forEach(file => {
 // console.log(allexps[0])
 // // console.log(allexps[0].length, tstatements[0].length)
 let pf = new ProofAssistant(allrules, latexparser, [])
-// console.log(allexps)
+// console.log(allexps[0][12])
 
 let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()

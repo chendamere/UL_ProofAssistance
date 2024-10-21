@@ -274,7 +274,7 @@ class LatexParser extends Parser {
     //second order normalize
     RuleNormalize = (line) => {
         let ret = line 
-        // console.log('1',ret)
+        // console.log('0',ret)
         ret = this.Convert_branch_expressions(ret)
         // console.log('1',ret)
         ret = this.Reorder_operations(ret)
@@ -394,6 +394,7 @@ class LatexParser extends Parser {
         let operation = ''
         let i = 0
         let replace = ''
+        // console.log('l',line)
         while(i < line.length){
             c = line[i]
 
@@ -406,7 +407,7 @@ class LatexParser extends Parser {
                     i+=1
                     ret += replace + ','
                     for(const br of this.branch){
-                        if(replace.includes(br)){
+                        if(replace.includes(br) && br != '#102'){
                             while(line[i] != '}') i+=1
                             break
                         }
@@ -421,6 +422,7 @@ class LatexParser extends Parser {
             i+=1
 
         }
+        // console.log('r',ret)
         return ret.trim()
     }
 
@@ -455,7 +457,7 @@ class LatexParser extends Parser {
         let i = 0
         let found = false
         for(const br of this.branch){
-            if(operation.includes(br)){
+            if(operation.includes(br) && operation.includes('\\Brs')){
                 while(i < rest.length && rest[i] != '}'){  
                     if(!found && (rest[i] == '&' || rest[i].toLowerCase().match(/[a-z]/i))){
                         found = true
@@ -557,30 +559,32 @@ class LatexParser extends Parser {
         {
             found = false
             //find the first operation 
-            while (j < rest.length) {
-                if (rest[j] == '#'){
-                    operator += rest[j]
-                    j += 1 
-                    found = true
-                    continue
+            if(Broperator != '#102'){
+                while (j < rest.length) {
+                    if (rest[j] == '#'){
+                        operator += rest[j]
+                        j += 1 
+                        found = true
+                        continue
+                    }
+            
+                    if(rest[j] == '}' || (found && rest[j] == ' '))
+                    {            
+                        break
+                    }
+                    if(found){
+                        operator += rest[j]
+    
+                    }
+                    j += 1
+            
                 }
-        
-                if(rest[j] == '}' || (found && rest[j] == ' '))
-                {            
-                    break
-                }
-                if(found){
-                    operator += rest[j]
-
+                while (j < rest.length-1 && rest[j] != '}'){
+                    j += 1
                 }
                 j += 1
-        
             }
 
-            while (j < rest.length-1 && rest[j] != '}'){
-                j += 1
-            }
-            j += 1
             //get number of operations before the first two } 
             let topInt = 0 
             let botInt = 0
