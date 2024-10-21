@@ -55,7 +55,10 @@ fs.readdirSync('./theorems/').forEach(file => {
 // console.log(allexps[0])
 // // console.log(allexps[0].length, tstatements[0].length)
 let pf = new ProofAssistant(allrules, latexparser, [])
-// console.log(allexps[0][12])
+
+// let x = pf.genRule('!, #11 , #13 1 , @, #11 , #13 1 , #13 1 ,')
+// console.log(x)
+// console.log(pf.Trim2(x.leftexps, x.rightexps))
 
 let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()

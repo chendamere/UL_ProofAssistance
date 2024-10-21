@@ -168,7 +168,6 @@ class ProofAssistant {
     getBrandindex(exp){
         let i = 0
         for(const e of exp){
-            
             if(e.Opparam){
                 if(e.Opparam[0]){
                     return [e,i]
@@ -179,68 +178,53 @@ class ProofAssistant {
             }
         }
     }
-    Trimbranchfront(left, right){
-        //get the first br in both branch
-
-        let [leftbr,leftendi] = this.getBrandindex(left)
-        let [rightbr, rightendi] = this.getBrandindex(right)
-        let [le, re] = [leftendi + leftbr.top + leftbr.bot, rightendi + rightbr.top + rightbr.bot]
-
-        let [long, li] = [le.length < re.length ? re : le , le.length < re.length ? rightendi : leftendi]
-        let [short, si] = [le.length < re.length ? le : re , le.length < re.length ? leftendi : rightendi]
-        let trimfront = true
-        while(li < long){
-            if(this.Same([long[li]], [short[si]])){
+    Trimfront(left, right){
+        let li = 0
+        while(li < left.length && li < right.length){
+            if(this.Same([left[li]], [right[li]])){
+                let rule = this.genRule('!' + this.ExpToString(left.slice(li, left.length))+'@'+this.ExpToString(right.slice(li, right.length)))
+                if(this.isRule(rule)){
+                    return [left.slice(li, left.length), right.slice(li, right.length)] 
+                }
                 li += 1                
-                si +=1
             }
             else{
-                break
+                return [left.slice(li, left.length), right.slice(li, right.length)] 
             }
         }
-
-
+        return [left.slice(li, left.length), right.slice(li, right.length)] 
+    }
+    Trimback(left, right){
+        let li = left.length > right.length ? left.length : right.length
+        let lj = left.length > right.length ? right.length : left.length
+        let [long, short] = [left.length > right.length ? left : right, left.length > right.length ? left : right]
+        while(li > 0 && lj > 0){
+            if(this.Same([long[li]], [short[lj]])){
+                let rule = this.genRule('!' + this.ExpToString(long.slice(0, li))+'@'+this.ExpToString(short.slice(0, lj)))
+                if(this.isRule(rule)){
+                    return [long.slice(0, li), short.slice(0, lj)]  
+                }
+                li += 1                
+            }
+            else{
+                return [long.slice(0, li), short.slice(0, lj)] 
+            }
+        }
+        return [long.slice(0, li), short.slice(0, lj)] 
     }
 
     trim_and_check(parsed_newrule) {
 
-        //when trimming rule we need to record the branch Opparam is trimmed, any
-        //after production, we need to go to the last branch operation and revise the end offsets 
-        //end offsets are length of new expression.
-        //need to keep track of bottom of top offset
-
-        //alternatively, trim like normal, and trim twice again for bottom and top expressions.
-
-        //need to trim #14 to left branch and right branch
-        // console.log('before:    ', this.RuleToString(parsed_newrule))
-
-        //hard copy 
-
-        //copying like this doesnt work for fields, have to specify all fields... we can gen a new rule from strings
         const t = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
-        //trimming will allow any rule that have same left and right to return true
-        // console.log('parsed_newrule: ', this.RuleToString(parsed_newrule))
-
-        let [trimleft, trimright] = this.Trim(t)
-        let long = trimleft
-        let short = trimright
-        if(long.length < short.length){
-            long= trimright
-            short = trimleft
-        }
+        let [long, short] = this.Trim2(t.leftexps, t.rightexps)
 
         let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
         let parsed_trimrule = this.Operands_normalize(this.genRule(trimrule))
-        // console.log('parsed_trimrule1: ', trimrule)
-
-        // console.log('parsed_trimrule2: ', this.RuleToString(parsed_trimrule), this.isRule(parsed_trimrule))
-
-        // throw new Error('here')
-
+        
         //dont pass the original rule, pass copies of the expression
         let ret =[]
-
+        console.log('here', trimrule)
         if(this.isRule(parsed_trimrule)){
             // if(parsed_trimrule.leftexps[0].operator && parsed_trimrule.rightexps[0].operator){
                 ret.push(parsed_trimrule)
@@ -291,25 +275,25 @@ class ProofAssistant {
                    
         // }
 
-        if(ret.length == 0){
+        // if(ret.length == 0){
 
-            const t3 = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
+        //     const t3 = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
-            let t3left = t3.leftexps
-            let t3right= t3.rightexps
-            // console.log('before trim: ',this.RuleToString(parsed_newrule))
-            let trimbrfront = this.Trimbranchfront(t3left,t3right)
-            console.log('trimbrfront: ', this.RuleToString(trimbrfront))
-            if(this.isRule(trimbrfront)){
-                if(trimbrfront.leftexps[0].operator && trimbrfront.rightexps[0].operator){
-                    ret.push(trimbrfront)
-                    return ret
+        //     let t3left = t3.leftexps
+        //     let t3right= t3.rightexps
+        //     // console.log('before trim: ',this.RuleToString(parsed_newrule))
+        //     let trimbrfront = this.Trimfront(t3left,t3right)
+        //     console.log('trimbrfront: ', this.RuleToString(trimbrfront))
+        //     if(this.isRule(trimbrfront)){
+        //         if(trimbrfront.leftexps[0].operator && trimbrfront.rightexps[0].operator){
+        //             ret.push(trimbrfront)
+        //             return ret
 
-                    // console.log('trimfront found rule: ', this.RuleToString(ret[0]))
+        //             // console.log('trimfront found rule: ', this.RuleToString(ret[0]))
 
-                }
-            }
-        }
+        //         }
+        //     }
+        // }
         if(ret.length == 0)ret.push(-1)
         // console.log('empty')
         return ret
@@ -373,6 +357,19 @@ class ProofAssistant {
         }
         return br 
     }
+
+
+    Trim2(left, right){
+        // let lbr = this.getlastbr(left)
+        // let sbr = this.getlastbr(right)
+
+        let [ftl, ftr] = this.Trimfront(left,right) 
+        // console.log(ftl, fts)
+        let [etl, ets] = this.Trimback(ftl,ftr) 
+
+        return [etl, ets]
+    }
+
     Trim(parsed_newrule) {
 
         let pleft = parsed_newrule.leftexps.slice()
