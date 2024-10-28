@@ -479,6 +479,101 @@ class ProofAssistant {
 
     }
 
+    genPermutation(slength, tlength){
+        let i = 0
+        let j = 0 
+        let ret = []
+        while(i < slength){
+            while(j < tlength){
+                ret.push([(i,j)])
+                j+=1
+            }
+            i+= 1
+        }
+        return ret
+    }
+
+    operationlist(cvtable, exps, flag = true){
+        let i = 0
+        let ret = []
+        while(exps[i]){
+            let srcropt = exps[i] 
+            if(srcropt.Opparam.length == 0){
+                let opt = srcropt.operator + srcropt.operands
+                if(ret.includes(opt)){
+                    ret.push(opt)
+                }
+            }
+            i += 1
+        }
+        return cvtable
+    }
+    
+    getcv(cvtable, exps){
+        let i = 0
+        while(exps[i]){
+            let srcropt = exps[i] 
+            if(srcropt.Opparam){
+                if(srcropt.Opparam.length == 0 ){
+                    if(this.parser.cv == srcropt.operator){
+                        cvtable[srcropt.operands[0]] = ''
+                    }
+                }
+            }
+            i += 1
+        }
+        return cvtable
+    }
+    assigncv(cvtable, optlist, perm){
+        let tcvtable = {...cvtable}
+        for(const p of perm){
+            if(tcvtable[p[0] + 1] == ''){
+                tcvtable[(p[0] + 1).toString()] = optlist[p[1]].split(' ')
+            }
+        }
+        return tcvtable
+    }
+    replacecv(cvtable, rule){
+        let retr = this.genRule('!'+this.ExpToString(rule.leftexps) + '@' + this.ExpToString(rule.rightexps))
+        for(const exp of retr.leftexps){
+            if(exp.operator == this.parser.cv){
+                let t = cvtable[exp.operands[0]]
+                exp.operator = t[0]
+                exp.operands = t.slice(1,t.length)
+            }
+        }
+        for(const exp of retr.rightexps){
+            if(exp.operator == this.parser.cv){
+                let t = cvtable[exp.operands[0]]
+                exp.operator = t[0]
+                exp.operands = t.slice(1,t.length)
+            }
+        }
+        return retr 
+    }
+    checkcv2(srcr, tarr){
+        let sleft = srcr.leftexps
+        let sright = srcr.rightexps
+        let tleft = tarr.leftexps 
+        let tright = tarr. rightexps 
+        let con = sleft.concat(sright).concat(tleft).concat(tright)
+        let cvtable = {}
+        cvtable = this.getcv(cvtable, con)
+        let optlist = this.operationlist( cvtable, srcr, false)
+        let perm = this.genPermutation(Object.keys(cvtable).length, optlist.length)
+        for(let i = 0 ; i < perm.length ; i ++){
+            let tcvtable = this.assigncv(cvtable, optlist, perm, i)
+            let replacedr = this.replacecv(tcvtable, tarr)
+            if(this.isRule(replacedr)){
+                console.log('!!!!')
+            }
+        }
+
+        return true
+        //
+
+    }
+
     checkcv(l,r,rl,rr){
         let srcstatement = this.genRule('!'+this.ExpToString(l) + '@' + this.ExpToString(r))
         let left= srcstatement.leftexps
@@ -603,10 +698,14 @@ class ProofAssistant {
             if(debug){
                 console.log('begincv: ', this.RuleToString(relation))
             }
-            if(this.checkcv(left,right, rleft,rright)) return true
-            if(this.checkcv(left,right, rright,rleft)) return true
-            if(this.checkcv(right,left, rleft,rright)) return true
-            if(this.checkcv(right,left, rright,rleft)) return true
+            
+            // if(this.checkcv(left,right, rleft,rright)) return true
+            // if(this.checkcv(left,right, rright,rleft)) return true
+            // if(this.checkcv(right,left, rleft,rright)) return true
+            // if(this.checkcv(right,left, rright,rleft)) return true
+            if(this.checkcv2(relation, rule)) {
+                return true
+            }
 
             
             if(debug){
@@ -662,10 +761,10 @@ class ProofAssistant {
         return false 
     }
 
-    operatorlist(src, opt){
+    operatorlist(src, opt, brflag = true){
         let ret =[]
         for (const e of src){
-            if(e.Opparam){
+            if(e.Opparamb && brflag){
                 if(e.Opparam.length!=0){
                     if(opt && (e.Opparam[0] == '#102' || e.Opparam[0] == '#101')){
                         ret.push('#100')

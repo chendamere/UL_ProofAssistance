@@ -676,7 +676,6 @@ class LatexParser extends Parser {
         this.cv = '#'+this.tokeni
         ret = this.AddUnary(ret,'\\Tc')
         this.tv = '#'+this.tokeni
-
         ret = this.AddUnary(ret,'\\Tt')
 
         ret = this.AddBin(ret,'\\Pe')
