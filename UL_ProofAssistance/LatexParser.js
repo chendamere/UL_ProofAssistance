@@ -433,8 +433,9 @@ class LatexParser extends Parser {
 
 
         let operators = this.FindOperators( operation, rest).trim()
-        let operands = this.FindOperands(operation, rest).trim()
 
+        let operands = this.FindOperands(operation, rest).trim()
+        // console.log('operation:', operation, 'rest', rest, 'operands: ',operands)
         let ret = ''
         
         if(operands != ''){
@@ -457,20 +458,19 @@ class LatexParser extends Parser {
         let i = 0
         let found = false
         for(const br of this.branch){
-            if(operation.includes(br) && operation.includes('\\Brs')){
+            if(operation.includes(br) && br != '#102'){
                 while(i < rest.length && rest[i] != '}'){  
                     if(!found && (rest[i] == '&' || rest[i].toLowerCase().match(/[a-z]/i))){
                         found = true
                     }
                     if(found) {
                         operand += rest[i]
-                    
-                        if(rest[i] == '#' || rest[i] == ' '){
-                            if(operand != ''){
-                                found = false 
-                                ret += operand.trim() + ' '
-                                operand = ''
-                            }
+                    }
+                    if(rest[i] == '#' || rest[i] == ' '){
+                        if(operand != ''){
+                            found = false 
+                            ret += operand.trim() + ' '
+                            operand = ''
                         }
                     }
                     i+= 1

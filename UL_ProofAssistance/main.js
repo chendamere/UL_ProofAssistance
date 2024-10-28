@@ -59,11 +59,12 @@ let pf = new ProofAssistant(allrules, latexparser, [])
 // let x = pf.genRule('!, #11 , #13 1 , @, #11 , #13 1 , #13 1 ,')
 // console.log(x)
 // console.log(pf.Trim2(x.leftexps, x.rightexps))
+// pf.PrintAllRules()
+// console.log(pf.isRule(pf.genRule('!,#0,@, #100 $0 $0 #10 1 2 ,')))
 
 let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()
 
-// pf.PrintAllRules()
 // console.log(pf.isRule( pf.genRule('!,#11, @, #0,')))
 
 // console.log(latexparser.branch)
