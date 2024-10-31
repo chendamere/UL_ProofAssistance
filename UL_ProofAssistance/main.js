@@ -61,7 +61,7 @@ let pf = new ProofAssistant(allrules, latexparser, [])
 // console.log(pf.Trim2(x.leftexps, x.rightexps))
 // pf.PrintAllRules()
 // console.log(pf.isRule(pf.genRule('!,#0,@, #100 $0 $0 #10 1 2 ,')))
-
+// console.log(pf.isRule(pf.genRule('! , #15 1 2 , @ , #15 2 1 ,')))
 let ps = new ProofStrategy(pf, tstatements, allexps)
 ps.Init()
 

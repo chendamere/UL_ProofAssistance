@@ -46,6 +46,7 @@ export default class ProofStrategy {
                 this.expstack[this.expstack.length-1].push(q)
                 expi += 1
                 console.log('finished proof in ProveAll -> isrule!', this.pf.RuleToString(newrule))
+                // this.pf.PrintAllRules()
                 continue
             }
             // console.log(tpexp[expi])
@@ -98,7 +99,8 @@ export default class ProofStrategy {
         let prev=start;
         let next;
         let ret = []
-        // console.log('!!!',end, exps[exps.length-1])
+        console.log('!!!', exps[exps.length-1], this.matchAndCheckExp(end, exps[exps.length-1]))
+        console.log('!!!', end)
         // if(!this.matchAndCheckExp(start, exps[0])) return -1 
         if(!this.matchAndCheckExp(end, exps[exps.length-1])) return -1
 

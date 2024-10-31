@@ -183,9 +183,13 @@ class ProofAssistant {
 
         const t = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
 
+
+        console.log('before trim: ', this.RuleToString(parsed_newrule))
         let [long, short] = this.Trim(t.leftexps, t.rightexps)
 
         let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
+        console.log('after trim: ', trimrule)
+
         let parsed_trimrule = this.genRule(trimrule)
         if(!this.isRule(parsed_trimrule)){
             parsed_trimrule = this.Operands_normalize(parsed_trimrule)
@@ -209,10 +213,10 @@ class ProofAssistant {
             ret.push(trimbr)
             return ret
         }
-        console.log('before TrimBranchFront: ', this.RuleToString(trimbr))
+        // console.log('before TrimBranchFront: ', this.RuleToString(trimbr))
 
         let trimbrf = this.TrimBranchFront(trimbr)
-        console.log('after TrimBranchFront: ', this.RuleToString(trimbrf))
+        // console.log('after TrimBranchFront: ', this.RuleToString(trimbrf))
 
         if(this.isRule(trimbrf)){
             ret.push(trimbrf)
@@ -387,20 +391,21 @@ class ProofAssistant {
             if(exp[ti].Opparam){
                 if(exp[ti].Opparam[0]){
                     if(this.BrOperators.includes(exp[ti].Opparam[0])){
-                        if(ti > bri){
-                            if(br.prev != -1){
-                                bri = br.prev.index
-                                br = br.prev
-                            }
-                        }
-                        else{
-                            // console.log('here')
-                            br.next = {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
-                            let temp = br 
-                            bri = br.next.bot + br.next.top
-                            br = br.next
-                            br.prev = temp  
-                        }
+                        return {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                        // if(ti > bri){
+                        //     if(br.prev != -1){
+                        //         bri = br.prev.index
+                        //         br = br.prev
+                        //     }
+                        // }
+                        // else{
+                        //     // console.log('here')
+                        //     br.next = {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                        //     let temp = br 
+                        //     bri = br.next.index + br.next.bot + br.next.top
+                        //     br = br.next
+                        //     br.prev = temp  
+                        // }
                     }
                 }
             }
@@ -485,7 +490,8 @@ class ProofAssistant {
         let ret = []
         while(i < slength){
             while(j < tlength){
-                ret.push([(i,j)])
+                let v = [i,j]
+                ret.push(v)
                 j+=1
             }
             i+= 1
@@ -493,20 +499,36 @@ class ProofAssistant {
         return ret
     }
 
-    operationlist(cvtable, exps, flag = true){
+    operationlist(exps){
         let i = 0
         let ret = []
         while(exps[i]){
             let srcropt = exps[i] 
-            if(srcropt.Opparam.length == 0){
-                let opt = srcropt.operator + srcropt.operands
-                if(ret.includes(opt)){
+            if(srcropt.Opparam){
+                if(srcropt.Opparam.length != 0){
+                    i+=1
+                     continue
+                }else{
+                    let opt = [srcropt.operator]
+                    if(srcropt.operands){
+                        opt = opt.concat(srcropt.operands)
+                    }
+                    if(!ret.includes(opt)){
+                        ret.push(opt)
+                    }
+                }
+            }else{
+                let opt = [srcropt.operator]
+                if(srcropt.operands){
+                    opt = opt.concat(srcropt.operands)
+                }
+                if(!ret.includes(opt)){
                     ret.push(opt)
                 }
             }
             i += 1
         }
-        return cvtable
+        return ret
     }
     
     getcv(cvtable, exps){
@@ -516,19 +538,29 @@ class ProofAssistant {
             if(srcropt.Opparam){
                 if(srcropt.Opparam.length == 0 ){
                     if(this.parser.cv == srcropt.operator){
+                        // console.log(this.parser.cv)
                         cvtable[srcropt.operands[0]] = ''
+                        
                     }
                 }
             }
             i += 1
         }
+        // console.log(cvtable)
         return cvtable
     }
     assigncv(cvtable, optlist, perm){
         let tcvtable = {...cvtable}
         for(const p of perm){
             if(tcvtable[p[0] + 1] == ''){
-                tcvtable[(p[0] + 1).toString()] = optlist[p[1]].split(' ')
+                let v =''
+                // console.log(optlist, p)
+                for(const c of optlist[p[1]]){
+                    v += c + ' '
+                    
+                }
+
+                tcvtable[(p[0] + 1).toString()] = v.trim()
             }
         }
         return tcvtable
@@ -537,14 +569,14 @@ class ProofAssistant {
         let retr = this.genRule('!'+this.ExpToString(rule.leftexps) + '@' + this.ExpToString(rule.rightexps))
         for(const exp of retr.leftexps){
             if(exp.operator == this.parser.cv){
-                let t = cvtable[exp.operands[0]]
+                let t = cvtable[exp.operands[0]].split(' ')
                 exp.operator = t[0]
                 exp.operands = t.slice(1,t.length)
             }
         }
         for(const exp of retr.rightexps){
             if(exp.operator == this.parser.cv){
-                let t = cvtable[exp.operands[0]]
+                let t = cvtable[exp.operands[0]].split(' ')
                 exp.operator = t[0]
                 exp.operands = t.slice(1,t.length)
             }
@@ -555,126 +587,39 @@ class ProofAssistant {
         let sleft = srcr.leftexps
         let sright = srcr.rightexps
         let tleft = tarr.leftexps 
-        let tright = tarr. rightexps 
+        let tright = tarr.rightexps 
         let con = sleft.concat(sright).concat(tleft).concat(tright)
         let cvtable = {}
         cvtable = this.getcv(cvtable, con)
-        let optlist = this.operationlist( cvtable, srcr, false)
+
+        let r = sleft.concat(sright)
+        let optlist = this.operationlist(r)
+
         let perm = this.genPermutation(Object.keys(cvtable).length, optlist.length)
+
         for(let i = 0 ; i < perm.length ; i ++){
             let tcvtable = this.assigncv(cvtable, optlist, perm, i)
+
             let replacedr = this.replacecv(tcvtable, tarr)
-            if(this.isRule(replacedr)){
-                console.log('!!!!')
+            
+            if(this.Same(sleft, replacedr.leftexps) ) {
+                if(this.Same(sright, replacedr.rightexps)){
+                    return true 
+                }
+            }
+            if(this.Same(sright, replacedr.leftexps) ) {
+                if(this.Same(sleft, replacedr.rightexps)){
+                    return true 
+                }
+            }
+            if(this.OperatorEquivalence(srcr,replacedr) && this.OperandEquivalence(srcr,replacedr)){
+                return true
             }
         }
 
-        return true
+        return false
         //
 
-    }
-
-    checkcv(l,r,rl,rr){
-        let srcstatement = this.genRule('!'+this.ExpToString(l) + '@' + this.ExpToString(r))
-        let left= srcstatement.leftexps
-        let right = srcstatement.rightexps
-
-        let tarstatement = this.genRule('!'+this.ExpToString(rl) + '@' + this.ExpToString(rr))
-        let rleft = tarstatement.leftexps
-        let rright = tarstatement.rightexps
-        let cvtable = {}
-        //check if expressions contain code variables
-        
-        let i = 0
-        let found = false 
-        let temp
-        let ti = 0
-        //retl should have same operations as l after iterating through rleft
-        let retl= []
-        // console.log(rleft)
-        while (i < rleft.length){
-            let t1 = rleft[i]
-            let t2 = left[i]
-            if(t1.operator && t1.Opparam == ''){
-                if (t1.operator == this.parser.cv){
-                    //set up code var in table
-                    if(!cvtable[t1.operands[ti]]){
-                        cvtable[t1.operands[ti]] = []
-                        temp = t1.operands[ti]
-                    }
-                    else{
-                        ti += 1
-                    }
-                    found = true                     
-                }
-                else{
-                    if(t2){
-                        if(!this.Same([t1],[t2])) return false
-                        retl.push(t1)
-                    }
-                }
-            }
-            if(found){
-                let j = i 
-                //push every operation to retl until same
-                while(j < left.length ){
-                    t2 = left[j]
-                    if(t2 && t1){
-                        // console.log(t1,t2)
-                        if(!this.Same([t1],[t2])){
-                            // console.log(cvtable[temp])
-                            
-                            cvtable[temp].push(t2)
-                            
-                            retl.push(t2)
-                        }
-                    }
-                    else{
-                        found = false
-                        break
-                    }
-                    j +=1
-                }
-            }
-            i += 1
-        }
-
-
-        if(Object.keys(cvtable).length == 0) {
-            return false
-        }
-
-        let x = 0
-        let retr =[]
-        while(x < rright.length){
-            let t1 = rright[x]
-            if(t1.operator){
-                if(t1.operator == this.parser.cv)
-                {
-                    if(cvtable[t1.operands[0]]){
-                        for(const e of cvtable[t1.operands[0]]){
-                            retr.push(e)
-                        }
-                    }
-                    
-                }
-                else{
-                    retr.push(t1)
-                }
-            }
-            x+=1
-        }            
-
-        if(this.Same(right,retr) && this.Same(left,retl)) {
-            return true 
-        }
-        // let srcr = this.genRule('!'+this.ExpToString(left)+'@'+this.ExpToString(right))
-        // let tarr = this.genRule('!'+this.ExpToString(retl)+'@'+this.ExpToString(retr))
-        // if(this.OperatorEquivalence(srcr,tarr) && this.OperandEquivalence(srcr,tarr)){
-        //     // console.log('equiv')
-        //     return true
-        // }
-        return false
     }
 
     //--Equivalence--
@@ -694,20 +639,15 @@ class ProofAssistant {
 
             let rleft = rule.leftexps
             let rright = rule.rightexps
-            // console.log(left,right, '|',rleft,rright)
             if(debug){
                 console.log('begincv: ', this.RuleToString(relation))
             }
             
-            // if(this.checkcv(left,right, rleft,rright)) return true
-            // if(this.checkcv(left,right, rright,rleft)) return true
-            // if(this.checkcv(right,left, rleft,rright)) return true
-            // if(this.checkcv(right,left, rright,rleft)) return true
+            
+
             if(this.checkcv2(relation, rule)) {
                 return true
             }
-
-            
             if(debug){
                 console.log('failed cv')
             }
@@ -743,13 +683,7 @@ class ProofAssistant {
                     return true
                 }
             }
-            // if(this.RuleToString(relation).includes('#100')){
-            //     console.log(this.RuleToString(relation))
-            //     console.log(this.RuleToString(rule))
-            //     console.log(this.OperatorEquivalence(relation,rule))
-            //     console.log(this.OperandEquivalence(relation,rule))
-                
-            // }
+
             if(this.OperatorEquivalence(relation,rule) && this.OperandEquivalence(relation,rule)){
                 // console.log('equiv')
                 return true
@@ -764,7 +698,7 @@ class ProofAssistant {
     operatorlist(src, opt, brflag = true){
         let ret =[]
         for (const e of src){
-            if(e.Opparamb && brflag){
+            if(e.Opparam && brflag){
                 if(e.Opparam.length!=0){
                     if(opt && (e.Opparam[0] == '#102' || e.Opparam[0] == '#101')){
                         ret.push('#100')
@@ -821,15 +755,6 @@ class ProofAssistant {
         let tartablel = this.operatorlist(tarstatement.leftexps, opt)
         let tartabler = this.operatorlist(tarstatement.rightexps, opt)
 
-        if(this.ExpToString(srcstatement.leftexps).includes('#100') && this.ExpToString(tarstatement.rightexps).includes('#102')) {
-            console.log('!!!', this.RuleToString(srcstatement), this.RuleToString(tarstatement))
-            console.log('-----')
-            console.log(srctablel)
-            console.log(srctabler)
-            console.log(tartablel)
-            console.log(tartabler)
-            console.log('-----')
-        }
         if(tartablel.length != srctablel.length && tartablel.length != srctabler.length ) return false
         if(tartabler.length != srctablel.length && tartabler.length != srctabler.length ) return false
         if(!(this.listequal(srctablel,tartablel) && this.listequal(srctabler,tartabler)) && !(this.listequal(srctabler,tartablel) && this.listequal(srctablel,tartabler))) return false
@@ -878,12 +803,7 @@ class ProofAssistant {
             operands = this.getBrOprands(srcstatement.rightexps)
         }
         let tartable = this.operandlist(tarstatement.leftexps, operands).concat(this.operandlist(tarstatement.rightexps, operands))
-        // if(this.getBrOpt(tarstatement.leftexps) == '#102'){
-        //     console.log('___')
-        //     console.log('srctable: ', srctable)
-        //     console.log('tartable: ', tartable)
-        //     console.log('___')
-        // }
+
         if(tartable.length != srctable.length) return false 
 
         let sit = {}
@@ -933,19 +853,23 @@ class ProofAssistant {
                         return false }
                 }
                 //check if Opparam match
-                if(src[i].Opparam){
-                    if(!tar[i].Opparam)return false
-                    let j = 0
-                    while(j < src[i].Opparam.length){
-                        if(src[i].Opparam[j] != tar[i].Opparam[j]){
-                            return false 
-                        } 
-                        j += 1
+                if(src[i].Opparam ^ tar[i].Opparam) return false
+                if(src[i].Opparam && tar[i].Opparam){
+                    if(src[i].Opparam.length != 0 ^ tar[i].Opparam.length != 0)return false
+                    if(src[i].Opparam.length != 0 && tar[i].Opparam.length != 0){
+                        let j = 0
+                        while(j < src[i].Opparam.length){
+                            if(src[i].Opparam[j] != tar[i].Opparam[j]){
+                                return false 
+                            } 
+                            j += 1
+                        }
                     }
                 }
                 
                 //check operands match
-                if(src[i].operands){
+                if(src[i].operands ^ tar[i].operands)return false
+                if(src[i].operands && tar[i].operands){
                     let j = 0
                     if(tar[i].operands.length != src[i].operands.length) return false
                     // console.log(tar[i].operands, src[j].operands)

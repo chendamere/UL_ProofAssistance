@@ -40,35 +40,87 @@ proof:  \\
  \begin{math} 
    \Rq, \Bb{i  \Pe j}{, \Or,}{,},  \Or, 
    \Rq, \Bb{i  \Pe j}{, \Or, \Or,}{, \Or,},  
+   \Rq, \Bb{i  \Pe j}{,\Or,}{,\Or,},
    \Rq, \Bb{i  \Pe j}{,}{,}, \Or,
    \Rq, \Or,
 \end{math}
 
  \section{Symmetry}
  \[,  \Bls{i \Pe j}{,}{,}  \Rq ,  \Bls{j  \Pe i}{,}{,}  \]
+ \begin{math} 
+   \Rq, \Bls{i \Oe j}{,}{,} 
+   \Rq, \Bls{j  \Oe i}{,}{,},
+   \Rq, \Bls{j  \Pe i}{,}{,},
+\end{math}
 
  \[, i  \Pe j,  \Rq , j  \Pe i, \]
+ \begin{math} 
+   \Rq, \Bb{i  \Pe j}{,}{,\Or,} 
+   \Rq, \Bb{j  \Pe i}{,}{,\Or,},
+   \Rq, j  \Pe i,
+\end{math}
  \[, i  \nPe j,  \Rq , j  \nPe i, \]
-
+ \begin{math} 
+   \Rq, \Bb{i  \Pe j}{,\Or,}{,} 
+   \Rq, \Bb{j  \Pe i}{,\Or,}{,},
+   \Rq, j  \nPe i,
+\end{math}
 
  \section {Swap}
  \subsection{Branch function and operator}
  \[, \Ot m, \Blb{i \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, \Ot m,}{, \Ot m,} \]
+ 
+ \begin{math} 
+   \Rq, \Ot m, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, \Ot m,}{, \Ot m,},
+   \Rq, \Blb{i  \Pe j}{, \Ot m,}{, \Ot m,},
+ \end{math}
 
  \[, \Og m,  \Blb{i \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, \Og m,}{, \Og m,} \]
-
+ \begin{math} 
+   \Rq, \Og m, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, \Og m,}{, \Og m,},
+   \Rq, \Blb{i  \Pe j}{, \Og m,}{, \Og m,},
+ \end{math}
  \[, m  \Oc n,  \Blb{i \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \Oc n,}{, m  \Oc n,} \]
+ \begin{math} 
+   \Rq, m  \Oc n, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, m  \Oc n,}{,m  \Oc n,},
+   \Rq, \Blb{i  \Pe j}{, m  \Oc n,}{,m  \Oc n,},
+ \end{math}
 
+ 
  \[, m  \Od n,  \Blb{i  \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \Od n,}{, m  \Od n,} \]
-
+ \begin{math} 
+   \Rq,  m  \Od n, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{,  m  \Od n,}{,  m  \Od n,},
+   \Rq, \Blb{i  \Pe j}{,  m  \Od n,}{,  m  \Od n,},
+ \end{math}
  \[, m  \Ob n,  \Blb{i  \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \Ob n,}{, m  \Ob n,} \]
-
+ \begin{math} 
+   \Rq, m  \Ob n, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, m  \Ob n,}{, m  \Ob n,},
+   \Rq, \Blb{i  \Pe j}{, m  \Ob n,}{, m  \Ob n,},
+ \end{math}
  \[, m  \Os,  \Blb{i  \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \Os,}{, m  \Os,} \]
+ \begin{math} 
+   \Rq, m  \Os, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, m  \Os,}{, m  \Os,},
+   \Rq, \Blb{i  \Pe j}{, m  \Os,}{, m  \Os,},
+ \end{math}
 
  \[, m  \On,  \Blb{i  \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \On,}{, m  \On,} \]
-
+ \begin{math} 
+   \Rq, m \On, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{,m \On,}{,m \On,},
+   \Rq, \Blb{i  \Pe j}{,m \On,}{,m \On,},
+ \end{math}
  \[, m  \Op,  \Blb{i  \Pe j}{,}{,}  \Rq ,  \Blb{i  \Pe j}{, m  \Op,}{, m  \Op,} \]
-
+ \begin{math} 
+   \Rq,m  \Op, \Blb{i  \Oe j}{,}{,} 
+   \Rq, \Blb{i  \Oe j}{, m  \Op,}{, m  \Op,},
+   \Rq, \Blb{i  \Pe j}{, m  \Op,}{, m  \Op,},
+ \end{math}
 
 
 
@@ -77,7 +129,9 @@ proof:  \\
  \subsection{Branch function and Branch function}
  \[,  \Bb{i  \Pe j}{, \Bb{m  \Pe n}{, \Tc c_1,}{, \Tc c_2,},}{, \Bb{m  \Pe n}{, \Tc c_3,}{, \Tc c_4,},},  \Rq ,  \Bb{m  \Pe n}{, \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_3,},}{, \Bb{i  \Pe j}{, \Tc c_2,}{, \Tc c_4,},}, \]
 
-
+ \begin{math} 
+   \Rq, \Bb{i  \Pe j}{, \Bb{m  \Pe n}{, \Tc c_1,}{, \Tc c_2,},}{, \Bb{m  \Pe n}{, \Tc c_3,}{, \Tc c_4,},},
+ \end{math}
 
 
 
