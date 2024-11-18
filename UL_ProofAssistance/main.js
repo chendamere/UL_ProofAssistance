@@ -53,17 +53,35 @@ fs.readdirSync('./theorems/').forEach(file => {
     allexps.push(texps)
 })
 // console.log(allexps[0])
-// // console.log(allexps[0].length, tstatements[0].length)
+// console.log(allexps[0].length, tstatements[0].length)
 let pf = new ProofAssistant(allrules, latexparser, [])
+// let r = latexparser.Parse('!, #100 $1 $1 #15 1 3, @,  #100 $1 $1 #15 1 3,')
+// console.log(pf.Same(r.leftexps,r.rightexps))
+// console.log(latexparser.branch)
 
-// let x = pf.genRule('!, #11 , #13 1 , @, #11 , #13 1 , #13 1 ,')
+// let t = pf.genRule('! , #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #4 1 , @ , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
+// let x = pf.TrimBranch2(t.leftexps,t.rightexps)
+
+let t1 = pf.genRule('! , #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
+let t2 = pf.genRule('! ,#101 $1 $2 #10 2 3 ,#4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #101 $0 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
+
+// let lastbr = pf.getLastBr(t1.leftexps)
+// console.log(lastbr)
+
+let x1 = pf.TrimBranchBack(t2.leftexps,t2.rightexps)
+
+// console.log(pf.ExpToString(x[0]),pf.ExpToString(x[1]))
+
+console.log(pf.ExpToString(x1[0]),pf.ExpToString(x1[1]))
+// let y = pf.parser.RuleNormalize('')
 // console.log(x)
+
 // console.log(pf.Trim2(x.leftexps, x.rightexps))
 // pf.PrintAllRules()
 // console.log(pf.isRule(pf.genRule('!,#0,@, #100 $0 $0 #10 1 2 ,')))
 // console.log(pf.isRule(pf.genRule('! , #15 1 2 , @ , #15 2 1 ,')))
-let ps = new ProofStrategy(pf, tstatements, allexps)
-ps.Init()
+// let ps = new ProofStrategy(pf, tstatements, allexps)
+// ps.Init()
 
 // console.log(pf.isRule( pf.genRule('!,#11, @, #0,')))
 

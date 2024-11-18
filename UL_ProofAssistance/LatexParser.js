@@ -399,10 +399,10 @@ class LatexParser extends Parser {
             c = line[i]
 
             if(c == ',' || c == '{' || c  == '}'){
-
                 replace = this.Reorder(operation, line.slice(i))
                 if (replace.trim() != '') {
                     // console.log('replace: ', replace, 'operation: ', operation)
+                    // console.log('operation: ', operation, c)
 
                     i+=1
                     ret += replace + ','
@@ -430,10 +430,8 @@ class LatexParser extends Parser {
 
         // if (operation.includes('j_1')) console.log( operation, rest)
         if (operation.trim() == '') return ''
-
-
         let operators = this.FindOperators( operation, rest).trim()
-
+        // console.log('operators:', operators, operation)
         let operands = this.FindOperands(operation, rest).trim()
         // console.log('operation:', operation, 'rest', rest, 'operands: ',operands)
         let ret = ''
@@ -518,14 +516,9 @@ class LatexParser extends Parser {
         return ret.trim()
     }
 
-    FindOperators = (operation, rest) => {
-        if(operation.trim().includes('@'))
-            return operation
-
-        let ret = ''
-        let i = 0
+    getNextOperator(operation){
         let operator = ''
-        let Broperator = ''
+        let i = 0
         let found = false
         while (i < operation.length) {
             if (operation[i] == '#' ){
@@ -545,67 +538,79 @@ class LatexParser extends Parser {
             }
             i+=1
         }
+        return operator
+    }
 
-        //branch operators
-        //if #12 or #13 then look for optional additional operator
-        if(this.branch.includes(operator)) {
-            Broperator = operator
-            operator = ''
+    FindOperators = (operation, rest) => {
+        if(operation.trim().includes('@')){
+            return operation
         }
 
-        let j = 0 
-
-        if(Broperator != '')
-        {
-            found = false
+        let ret = ''
+        let operator = this.getNextOperator(operation).trim()
+        let Broperator = ''
+        if(this.branch.includes(operator)) {
+            Broperator = operator
+            // console.log('!',Broperator, rest)
             //find the first operation 
             if(Broperator != '#102'){
-                while (j < rest.length) {
-                    if (rest[j] == '#'){
-                        operator += rest[j]
-                        j += 1 
-                        found = true
-                        continue
-                    }
-            
-                    if(rest[j] == '}' || (found && rest[j] == ' '))
-                    {            
+                operator = this.getNextOperator(rest)
+                let i = 0
+                while(rest[i]){
+                    // console.log(rest[i])
+                    i+=1
+                    if(rest[i] == '}'){
+                        rest = rest.slice(i+1,rest.length)
+                        // console.log('!!!',rest)
                         break
                     }
-                    if(found){
-                        operator += rest[j]
-    
-                    }
-                    j += 1
-            
                 }
-                while (j < rest.length-1 && rest[j] != '}'){
-                    j += 1
-                }
-                j += 1
+            }
+            else{
+                operator = ''
             }
 
-            //get number of operations before the first two } 
+            //get number of operations before and after } 
             let topInt = 0 
             let botInt = 0
-            let Switch = false
-            // console.log('rest: ', rest,rest[j])
+            let level = 0
+            let j = 0 
+            let topflag = true
+            // console.log('rest: ', rest)
             while (j < rest.length){
+                if(rest[j].trim().length == 0) {
+                    j +=1
+                    continue
+                }
+                // console.log(rest[j])
+                if(rest[j] == ','){
+                    if(level == 1){
+                        if(topflag){
+                            topInt += 1
+                        }
+                        else{
+                            botInt += 1
+                        }
+                    }
+
+                }
+                if(rest[j] == '{')
+                {
+                    level +=1
+                }
                 if(rest[j] == '}')
                 {
-                    if (Switch){
-                        break
-                    }
-                    Switch = true
-                }
-                if(rest[j] == ','){
-                    if(Switch===false){
-                        topInt += 1
-                    }
-                    else{
-                        botInt += 1
+                    level -=1
+                    if(level == 0){
+                        topflag = false
+                        j += 1
+                        continue
                     }
                 }
+                if(level == 0 && !topflag){
+                    break
+                }
+
                 j += 1
             }
             ret = Broperator + ' $' + String(topInt - 1) + ' $' + String(botInt - 1) 
@@ -622,6 +627,7 @@ class LatexParser extends Parser {
         if(!ret) console.log('operation: ', operation)
                 
 
+        // console.log('findoperators: ', ret)
         return ret.trim()
 
     }

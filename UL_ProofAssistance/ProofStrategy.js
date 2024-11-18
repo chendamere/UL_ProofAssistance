@@ -99,8 +99,8 @@ export default class ProofStrategy {
         let prev=start;
         let next;
         let ret = []
-        console.log('!!!', exps[exps.length-1], this.matchAndCheckExp(end, exps[exps.length-1]))
-        console.log('!!!', end)
+        // console.log('!!!', exps[exps.length-1], this.matchAndCheckExp(end, exps[exps.length-1]))
+        // console.log('!!!', end)
         // if(!this.matchAndCheckExp(start, exps[0])) return -1 
         if(!this.matchAndCheckExp(end, exps[exps.length-1])) return -1
 
