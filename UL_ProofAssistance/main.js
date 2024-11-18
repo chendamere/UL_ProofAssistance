@@ -64,15 +64,16 @@ let pf = new ProofAssistant(allrules, latexparser, [])
 
 let t1 = pf.genRule('! , #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
 let t2 = pf.genRule('! ,#101 $1 $2 #10 2 3 ,#4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #101 $0 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
+let t3 = pf.genRule('! ,#101 $2 $2 #10 2 3 ,#4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #101 $1 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,#101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
 
 // let lastbr = pf.getLastBr(t1.leftexps)
 // console.log(lastbr)
 
-let x1 = pf.TrimBranchBack(t2.leftexps,t2.rightexps)
+let x1 = pf.TrimBranchBack(t3.leftexps,t3.rightexps)
 
 // console.log(pf.ExpToString(x[0]),pf.ExpToString(x[1]))
 
-console.log(pf.ExpToString(x1[0]),pf.ExpToString(x1[1]))
+console.log(pf.ExpToString(x1[0])+'@'+pf.ExpToString(x1[1]))
 // let y = pf.parser.RuleNormalize('')
 // console.log(x)
 
