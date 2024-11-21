@@ -328,138 +328,140 @@ class ProofAssistant {
     }
     TrimBranchFront(left,right){
 
-        let [pleft, pright] = [left, right]
-        let [leftbr, rightbr] = [this.getFirstBr(pleft), this.getFirstBr(pright)]
-
-
-        let topr= pright.slice( (rightbr.top == 0 ? rightbr.index+rightbr.top +1: rightbr.index+1) , rightbr.index+rightbr.top+1)    
-        let botr= pright.slice((rightbr.bot == 0? rightbr.index+1+rightbr.top+rightbr.bot: rightbr.index+rightbr.top+1) , rightbr.index+rightbr.top+rightbr.bot+1)
-
-        let topl= pleft.slice( (leftbr.top == 0 ? leftbr.index+leftbr.top +1: leftbr.index+1) , leftbr.index+leftbr.top+1)
-        let botl= pleft.slice((leftbr.bot == 0 ? leftbr.index+1+leftbr.top+leftbr.bot: leftbr.index+leftbr.top+1) , leftbr.index+leftbr.top+leftbr.bot+1)
-
-        if((leftbr.br == '#102' && rightbr.br == '#102' && this.Same([left[0]], [right[0]])) || 
-            (rightbr.br == '#100' || leftbr.br == '#100' )&&(rightbr.br == '#102' || leftbr.br == '#102' )){
-                 [topl,topr] = this.TrimBranchFront(topl,topr)
-                 [botl,botr] = this.TrimBranchFront(topl,topr)
-        }
-
-        if(this.Same([topr[0]], [topl[0]])){
-            [topl, topr] = [topl.slice(1, topl.length),topr.slice(1, topr.length)]
-            pleft[leftbr.index].Opparam[1] = '$'+topl.length.toString()
-            let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-            pleft= pleft.slice(0, leftbr.index+1).concat(topl).concat(botl).concat(plend)
-
-            pright[rightbr.index].Opparam[1] = '$'+topr.length.toString()
-            let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-            pright= pleft.slice(0, rightbr.index+1).concat(topr).concat(botr).concat(prend)
-
-        }
-        if(this.Same([botr[0]], [botl[0]])){
-            [botl, botr] = [botl.slice(1, botl.length),botr.slice(1, botr.length)]
-            pleft[leftbr.index].Opparam[2] = '$'+botl.length.toString()
-            let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-            pleft= pleft.slice(0, leftbr.index+1).concat(botl).concat(botl).concat(plend)
-
-            pright[rightbr.index].Opparam[2] = '$'+botr.length.toString()
-            let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-            pright= pleft.slice(0, rightbr.index+1).concat(botr).concat(botr).concat(prend)
-        }
-        
-        return [pleft,pright]
-    }
-    TrimBranchBack(left,right){
-        if(!left || !right) return [left,right]
-        // if(left.length == 0 || right.length == 0 ) return[left, right]
+        if(left.length ==0  || right.length ==0) return [left,right]
         console.log('step', this.ExpToString(left), this.ExpToString(right))
 
         let [pleft, pright] = [left, right]
+        let [leftbr, rightbr] = [this.getFirstBr(pleft), this.getFirstBr(pright)]
+        let [topl, botl] = this.getTopBot(pleft, leftbr)
+        let [topr, botr] = this.getTopBot(pright, rightbr)
+        let [toplbr,botlbr] = [this.getFirstBr(topl), this.getFirstBr(botl)]
+        let [toprbr,botrbr] = [this.getFirstBr(topr),this.getFirstBr(botr)]
+        if(leftbr.index == 0 && rightbr.index == 0){
+            if((toplbr.index == 0 && toprbr.index == 0 && toplbr.top != 0 && toplbr.bot != 0 && toprbr.top != 0 && toprbr.bot != 0 )){
+                let ret  = this.TrimBranchFront(topl,topr)
+                topl = ret[0]
+                topr = ret[1]
+                pleft = this.updateBr(pleft,topl, botl,leftbr)
+                pright = this.updateBr(pright,topr ,botr, rightbr)
+                
+            }
+            if(botlbr.index == 0 && botrbr.index == 0 && botlbr.top != 0 && botlbr.bot != 0 && botrbr.top != 0 && botrbr.bot != 0 ){
+                let ret  = this.TrimBranchFront(topl,topr)
+                topl = ret[0]
+                topr = ret[1]
+                pleft = this.updateBr(pleft,topl, botl,leftbr)
+                pright = this.updateBr(pright,topr ,botr, rightbr)
+            }
+        }
+        else if(this.Same([pleft[0]], [pright[0]])){
+            pleft = pleft.slice(1, pleft.length)
+            pright = pright.slice(1, pright.length)
+        }
+
+        console.log('ret: ', this.ExpToString(pleft), this.ExpToString(pright))
+        return [pleft,pright]
+    }
+
+    getNumOpt(exp){
+        let i = 0 
+        let count = 0
+        while(i < exp.length){
+            if(exp[i].Opparam){
+                if(exp[i].Opparam[0]){
+                    i += parseInt(exp[i].Opparam[1][1]) + parseInt(exp[i].Opparam[2][1])
+                }
+            }
+            i += 1
+            count += 1
+        }
+        return count.toString()
+    }
+
+    getTopBot(exp, br){
+        if(br.index == -1) return [[],[]] 
+        let topend = br.index + br.top 
+        let t = br.index 
+        let top = []
+        let bot =[]
+        if(br.top != 0) t += 1
+        while(t <= topend){
+            if(!exp[t]) break
+            top.push(exp[t])
+            if(exp[t].Opparam){
+                if(exp[t].Opparam[0]){
+                    topend += parseInt(exp[t].Opparam[1][1]) + parseInt(exp[t].Opparam[2][1])
+                }
+            }
+            t += 1   
+        }
+        let botend = topend + br.bot 
+        while(t <= botend){
+            if(!exp[t]) break
+            bot.push(exp[t])
+            if(exp[t].Opparam){
+                if(exp[t].Opparam[0]){
+                    botend += parseInt(exp[t].Opparam[1][1]) + parseInt(exp[t].Opparam[2][1])
+                }
+            }
+            t += 1
+            
+        }
+        return [top,bot]
+    }
+    updateBr(exp, topexp, botexp, br){
+        if(br.index == -1) return exp
+        exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp)
+        exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp)
+        let range = this.getTopBot(exp, br).length
+        let end = exp.slice(br.index + range + 1, topexp.length)
+        exp = exp.slice(0, br.index+1).concat(topexp).concat(botexp).concat(end)
+        return exp
+    }
+    TrimBranchBack(left,right){
+        if(!left || !right) return [left,right]
+        // console.log('step', this.ExpToString(left), this.ExpToString(right))
+
+        let [pleft, pright] = [left, right]
         let [leftbr, rightbr] = [this.getLastBr(pleft), this.getLastBr(pright)]
-        // console.log(leftbr,rightbr)
+        let [topl, botl] = this.getTopBot(pleft, leftbr)
+        let [topr, botr] = this.getTopBot(pright, rightbr)
+        let [toplbr,botlbr] = [this.getLastBr(topl), this.getLastBr(botl)]
+        let [toprbr,botrbr] = [this.getLastBr(topr),this.getLastBr(botr)]
 
-        let topr= pright.slice((rightbr.top == 0 ? rightbr.index+rightbr.top +1: rightbr.index+1) , rightbr.index+rightbr.top+1)    
-        let botr= pright.slice((rightbr.bot == 0? rightbr.index+1+rightbr.top+rightbr.bot: rightbr.index+rightbr.top+1) , rightbr.index+rightbr.top+rightbr.bot+1)
-        let topl= pleft.slice((leftbr.top == 0 ? leftbr.index+leftbr.top +1: leftbr.index+1) , leftbr.index+leftbr.top+1)
-        let botl= pleft.slice((leftbr.bot == 0 ? leftbr.index+1+leftbr.top+leftbr.bot: leftbr.index+leftbr.top+1) , leftbr.index+leftbr.top+leftbr.bot+1)
-
-        let toplbr = this.getLastBr(topl)
-        let toprbr = this.getLastBr(topr)
-        let botlbr = this.getLastBr(botl)
-        let botrbr = this.getLastBr(botr)
-        // console.log('!!!', toplbr,toprbr,botlbr,botrbr )
-        console.log('!!!', leftbr, rightbr)
-        // console.log('!!!', this.ExpToString(topl),this.ExpToString(topr),this.ExpToString(botl),this.ExpToString(botr) )
-        
-        if(toplbr.index != -1 && toprbr.index != -1){
-            topl=topl.concat(pleft.slice(leftbr.index+leftbr.top+1, leftbr.index+leftbr.top+toplbr.top + 1))
-            topr=topr.concat(pright.slice(rightbr.index+rightbr.top+1, rightbr.index+rightbr.top+toprbr.top + 1))
+        //recursion
+        if(toplbr.index != -1 && toprbr.index != -1 && toplbr.top != 0 && toplbr.bot != 0 && toprbr.top != 0 && toprbr.bot != 0 ){
             let ret  = this.TrimBranchBack(topl,topr)
             topl = ret[0]
             topr = ret[1]
-            console.log('before top: ', this.ExpToString(pleft), this.ExpToString(pright))
-            let plend = pleft.slice(toplbr.index + toplbr.top + toplbr.bot + 1, topl.length)
-            pleft = pleft.slice(0, leftbr.index+1).concat(topl).concat(botl).concat(plend)
-            let prend = pright.slice(toprbr.index + toprbr.top + toprbr.bot + 1, toprbr.length)
-            pright = pright.slice(0, rightbr.index+1).concat(topr).concat(botr).concat(prend)
-            console.log('after top: ', this.ExpToString(pleft), this.ExpToString(pright))
-
+            pleft = this.updateBr(pleft,topl, botl,leftbr)
+            pright = this.updateBr(pright,topr ,botr, rightbr)
         }
-        if(botlbr.index != -1 && botrbr.index != -1){
-            botl= botl.concat(pleft.slice(leftbr.index+leftbr.top+leftbr.bot+1, leftbr.index+leftbr.top +leftbr.bot+ botlbr.top+botlbr.bot+1))
-            botr= botr.concat(pright.slice(rightbr.index+rightbr.top+rightbr.bot+1, rightbr.index+rightbr.top +rightbr.bot+ botrbr.top+botrbr.bot+1))
-
-            let ret = this.TrimBranchBack(botl,botr)
-            // console.log('before bot: ', this.ExpToString(pleft), this.ExpToString(pright))
-
-            botl = ret[0]
-            botr = ret[1]
-            let plend = pleft.slice(botlbr.index + botlbr.top + botlbr.bot + 1, topl.length)
-            console.log('!',this.ExpToString(topl), this.ExpToString(botl),this.ExpToString(plend))
-            pleft = pleft.slice(0, leftbr.index+ 1).concat(topl).concat(botl).concat(plend)
-            let prend = pright.slice(botrbr.index + botrbr.top + botrbr.bot + 1, topr.length)
-            pright = pright.slice(0, rightbr.index + 1).concat(topr).concat(botr).concat(prend)
-            // console.log('after bot: ', this.ExpToString(pleft), this.ExpToString(pright))
-
-        }
-        
-        // console.log('before top: ', this.ExpToString(pleft)+'@'+ this.ExpToString(pright))
-        if(this.Same([topl[topl.length-1]], [topr[topr.length-1]])){
-            // console.log('before trim: ', this.ExpToString(topl)+'@'+ this.ExpToString(topr) )
+        else if(this.Same([topl[topl.length-1]], [topr[topr.length-1]])){
             let x = [topl.slice(0, topl.length-1),topr.slice(0, topr.length-1)]
             topl = x[0]
             topr = x[1]
-            // console.log('after trim: ', this.ExpToString(topl)+'@'+ this.ExpToString(topr) )
-
-            pleft[leftbr.index].Opparam[1] = '$'+topl.length.toString()
-            let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-            pleft= pleft.slice(0, leftbr.index+1).concat(topl).concat(botl).concat(plend)
-
-            pright[rightbr.index].Opparam[1] = '$'+topr.length.toString()
-            let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-            pright= pright.slice(0, rightbr.index+1).concat(topr).concat(botr).concat(prend)
+            pleft = this.updateBr(pleft,topl, botl,leftbr)
+            pright = this.updateBr(pright,topr,botr, rightbr)
         }
-        // console.log('after top: ', this.ExpToString(pleft)+'@'+ this.ExpToString(pright))
-        // console.log('before bot: ', this.ExpToString(pleft)+'@'+ this.ExpToString(pright))
-
-        if(this.Same([botl[botl.length-1]], [botr[botr.length-1]])){
+        
+        if(botlbr.index != -1 && botrbr.index != -1 && botlbr.top != 0 && botlbr.bot != 0 && botrbr.top != 0 && botrbr.bot != 0){
+            let ret = this.TrimBranchBack(botl,botr)
+            botl = ret[0]
+            botr = ret[1]
+            pleft = this.updateBr(pleft,topl, botl, leftbr)
+            pright = this.updateBr(pright,topr,botr, rightbr)
+        }
+        else if(this.Same([botl[botl.length-1]], [botr[botr.length-1]])){
             let x = [botl.slice(0, botl.length-1),botr.slice(0, botr.length-1)]
             botl = x[0]
             botr = x[1]
-            pleft[leftbr.index].Opparam[2] = '$'+botl.length.toString()
-            let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-            pleft= pleft.slice(0, leftbr.index+1).concat(topl).concat(botl).concat(plend)
-
-            pright[rightbr.index].Opparam[2] = '$'+botr.length.toString()
-            let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-            pright= pright.slice(0, rightbr.index+1).concat(topr).concat(botr).concat(prend)
-        }
-        // console.log('after bot: ', this.ExpToString(pleft)+'@'+ this.ExpToString(pright))
-    
-
-        console.log('ret: ', this.ExpToString(pleft), this.ExpToString(pright))
-
+            pleft = this.updateBr(pleft,topl, botl, leftbr)
+            pright = this.updateBr(pright,topr, botr, rightbr)
+        }  
         
 
+        // console.log('ret: ', this.ExpToString(pleft), this.ExpToString(pright))
         return [pleft,pright]
     }
 
@@ -614,12 +616,19 @@ class ProofAssistant {
     getLastBr(exp){
         let br = {index : -1, next : {}, prev:-1, bot:-1, top:-1, br: ''}
         let ti = 0
+        let broffset = 0 
         // console.log('leftbr: ', br)
         while(ti < exp.length) {
             if(exp[ti].Opparam){
                 if(exp[ti].Opparam[0]){
-                    if(this.BrOperators.includes(exp[ti].Opparam[0]) && (ti > br.index+br.bot + br.top )){
-                        br = {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                    if(this.BrOperators.includes(exp[ti].Opparam[0])){
+                        if(ti > broffset + br.index+br.bot + br.top ){
+                            br = {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                        }
+                        else{
+                            broffset += parseInt(exp[ti].Opparam[2][1])
+                            broffset += parseInt(exp[ti].Opparam[1][1])
+                        }
                     }
                 }
             }
