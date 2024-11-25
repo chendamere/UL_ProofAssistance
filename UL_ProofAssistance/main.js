@@ -55,20 +55,20 @@ fs.readdirSync('./theorems/').forEach(file => {
 
 let pf = new ProofAssistant(allrules, latexparser, [])
 // pf.PrintAllRules()
-let r = pf.genRule('!, #13 1 , #102 $2 $1 , #13 1 , #102 $2 $1 , #13 1 , #5 1 , #6 1  ,#7 1 , #13 1 , @ ,')
-let r2 = pf.genRule('!, #13 1 , #102 $1 $1 , #13 1 , #102 $1 $0 , #13 1 ,@ ,')
+let r = pf.genRule('!, #13 1 , #100 $2 $1 , #13 1 , #102 $2 $1 , #13 1 , #5 1 , #6 1  ,#7 1 , #13 1 , @ ,')
+let r2 = pf.genRule('!, #13 1 , #102 $1 $1 , #6 1 , #100 $1 $0 , #7 1 , #5 1, @ ,')
 // let r2 = pf.genRule('!, #7 2 1 , #5 4, #4 5, @ ,')
 // console.log(pf.OperandEquivalence(r, r2))
 // console.log(pf.TrimAndCheck(r))
 // console.log(pf.TrimAndCheck(r))
-let x = pf.getAlltrimedfront(r2.leftexps)
+let x = pf.MatchandCheck(r2.leftexps, r2.rightexps)
 for(const exp of x){
     console.log(pf.ExpToString(exp))
 }
-// console.log()
+console.log()
 
-let ps = new ProofStrategy(pf, tstatements, allexps)
-// ps.Init()
+// let ps = new ProofStrategy(pf, tstatements, allexps)
+// ps.Init()s
 
 // console.log(pf.Operands_normalize(r))
 // console.log(r.leftexps)

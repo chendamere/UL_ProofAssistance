@@ -136,7 +136,6 @@ export default class ProofStrategy {
                     if(x > 1){
                         x=x-1
                         opt.operands[j] = x.toString()
-
                     }
                     j += 1
                 }
