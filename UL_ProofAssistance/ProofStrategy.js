@@ -69,12 +69,12 @@ export default class ProofStrategy {
                 this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret[0])
                 stackindex = ret[1]
                 this.pf.allrules.push(newrule)
-                // console.log(this.expstack[this.expstack.length-1])
+                console.log(this.expstack[this.expstack.length-1])
                 console.log('finished proof in ProveAll -> provefromstack!', this.pf.RuleToString(newrule))
                 expi += 1
                 continue
             }
-
+            // this.pf.PrintAllRules()
             throw new Error('failed in ProveAll')
         }
     }
@@ -195,15 +195,15 @@ export default class ProofStrategy {
                 return [tstack, i]
             }
 
-            let flipstack =[]
-            for(const l of slicelst){
-                if(l ==[]) l =''
-                flipstack.push(l)
-            }
-            ret=this.proveExps(flipstack,p, q, debug)
-            if(ret != -1){
-                return [flipstack, i]
-            }
+            // let flipstack =[]
+            // for(const l of slicelst){
+            //     if(l ==[]) l =''
+            //     flipstack.push(l)
+            // }
+            // ret=this.proveExps(flipstack,p, q, debug)
+            // if(ret != -1){
+            //     return [flipstack, i]
+            // }
             i+=1
     
         }
@@ -264,5 +264,6 @@ export default class ProofStrategy {
         }
         return ret
     }
+    
 }
 

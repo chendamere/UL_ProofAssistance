@@ -43,43 +43,16 @@ class ProofAssistant {
             console.log('start: ', start, 'end: ', end)
         }
         let tempv = this.genRule('!'+start+'@'+end)
-        if (this.Same(tempv.leftexps , tempv.rightexps)) return 1
-        let tempv2 = this.genRule('!'+start+'@'+end)
+        // console.log('r:', this.RuleToString(tempv))
+        if (this.Same(tempv.leftexps, tempv.rightexps)) return 1
         if(!this.isRule(tempv)){
-            let rules = this.trim_and_check(tempv)      
-            
-            let check = -1
-            let i =0
-            while(i < rules.length){
-                if(rules[i] != -1)
-                {
-                    check =rules[i]
-                    // console.log(this.RuleToString(check))
-                }
-                i+=1
+            // console.log('!!!',this.TrimAndCheck(tempv))
+            if(this.TrimAndCheck(tempv)) {
+                console.log('TrimAndCheck pass')
+                return 1    
             }
-            if (check != -1){
-                let retr = this.matchbr(tempv)
-                if(debug){
-                    console.log('found proof, next exp: ', retr)
-                }
-                return 1
-            }
-
-            let f = this.switchtopbot(tempv2.rightexps)
-            if(!this.Same(f, tempv.rightexps)){
-                if(this.Same(tempv.leftexps, f)){
-                    return 1
-                }
-                let fliprules = this.trim_and_check(this.genRule('!'+this.ExpToString(tempv.leftexps)+'@'+this.ExpToString(f) ))
-                i=0
-                while(i < fliprules.length){
-                    if(fliprules[i] != -1) check =fliprules[i]
-                    i+=1
-                }
-                if (check != -1){
-                    return 1
-                }
+            else{
+                return -1
             }
         }
         else{
@@ -89,7 +62,6 @@ class ProofAssistant {
             }
             return 1
         }
-        return -1
     }
     
     //--Trim and Branch--
@@ -115,254 +87,427 @@ class ProofAssistant {
 
         return ret
     }
-    switchtopbot(exp){
-        let br
-        let ret=[]
-        let ti =0
-        
-        let tempexp = (this.genRule('!,@'+this.ExpToString(exp))).rightexps
-        while(ti< exp.length){
-            let e = exp[ti]
-            let tempe = tempexp[ti]
-            if(e){
-                if(e.Opparam){
-                    if(e.Opparam[0]){
-                        if(this.BrOperators.includes(e.Opparam[0])){
-                            
-            
-                            br = e.Opparam
-                            let topi = parseInt(br[1][1])
-                            let boti = parseInt(br[2][1])
-                            e.Opparam[1] = tempe.Opparam[2]
-                            e.Opparam[2] = tempe.Opparam[1]
-                            ret.push(e)
-            
-                            // console.log('topi: ', topi)
-                            let tii = boti == 0 ? exp.length : ti + topi +1
-                            while(tii<= ti+topi+boti && tii < exp.length){
-                                e = tempexp[tii]
-                                ret.push(e)
-                                tii +=1
-                            }
-                            tii = topi == 0 ? exp.length : ti + 1
-                            while(tii <= ti+topi&& tii < exp.length){
-                                e = tempexp[tii]
-                                ret.push(e)
-                                tii +=1
-                            }
-                            ti = ti + topi + boti+1
-                            continue 
-                        }
+
+    TrimAndCheck(r){
+        let r1= this.genRule('!'+this.ExpToString(r.leftexps)+'@'+this.ExpToString(r.rightexps))
+
+
+        //TrimFront outer loop
+        let t1 = this.Trim1(r1)
+        console.log('Trim1?: ', this.ExpToString(t1[0]), this.ExpToString(t1[1]))
+        if(this.ExpsIsRule(t1[0], t1[1])){
+            console.log('Trim1 pass', this.ExpToString(t1[0]), this.ExpToString(t1[1]))
+            return true
+        }
+
+        //get rules from top and bot branch(recursive)
+        let stepbranch = this.StepBranch(t1[0], t1[1])
+        // console.log('Trim1 StepBranch?: ', this.ExpToString(stepbranch[0]), this.ExpToString(stepbranch[1]))
+        if(this.ExpsIsRule(stepbranch[0], stepbranch[1])){
+            console.log('Trim1 StepBranch pass: ', this.ExpToString(stepbranch[0]), this.ExpToString(stepbranch[1]))
+            return true
+        }
+
+
+        //TrimBack outer loop
+        let t2 = this.Trim2(r1)
+        console.log('Trim2?: ', this.ExpToString(t2[0]), this.ExpToString(t2[1]))
+        if(this.ExpsIsRule(t2[0], t2[1])){
+            console.log('Trim2 pass', this.ExpToString(t2[0]), this.ExpToString(t2[1]))
+            return true
+        }
+
+        //Same thing
+        let stepbranch2 = this.StepBranch(t2[0], t2[1])
+        // console.log('Trim2 StepBranch?: ', this.ExpToString(stepbranch2[0]), this.ExpToString(stepbranch2[1]))
+        if(this.ExpsIsRule(stepbranch2[0], stepbranch2[1])){
+            console.log('Trim2 StepBranch pass', this.ExpToString(stepbranch2[0]), this.ExpToString(stepbranch2[1]))
+            return true
+        }
+        return false
+    }
+
+    firstIsSameBranch(exp1, exp2){
+        if(!exp1 || !exp2) return false 
+        if(!exp1[0] || !exp2[0]) return false 
+        let leftopt = this.getBrOpt(exp1)
+        let rightopt = this.getBrOpt(exp2)
+        let lopl = this.getBrOprands(exp1)
+        let lopr = this.getBrOprands(exp2)
+        let br1 = this.getFirstBr(exp1)
+        let br2 = this.getFirstBr(exp2)
+        if(leftopt != rightopt) return false
+        if(!this.listequal(lopl, lopr)) return false 
+        if(br1.index != 0 || br2.index != 0) return false 
+        return true 
+    }
+
+    StepBranch(t1,t2){ 
+        if(this.firstIsSameBranch(t1,t2)){
+            // console.log('StepBranch',this.ExpToString(t1), this.ExpToString(t2))
+            let t1br = this.getFirstBr(t1)
+            let t2br = this.getFirstBr(t2)
+            let [top1,bot1] = this.getTopBot(t1, t1br)
+            let [top2,bot2] = this.getTopBot(t2, t2br)
+            // console.log('StepBranch top: ',this.ExpToString(top1), this.ExpToString(top2))
+            // console.log('StepBranch bot: ',this.ExpToString(bot1), this.ExpToString(bot2))
+
+            if(this.firstIsSameBranch(top1,top2)){
+                [top1, top2] = this.StepBranch(top1, top2)
+            }
+            if(this.firstIsSameBranch(bot1,bot2)){
+                [bot1, bot2] = this.StepBranch(bot1, bot2)
+            }
+            if(this.ExpsIsRule(top1, top2) && this.ExpsIsRule(bot1,bot2)){
+                if(top1.length + top2.length > bot1.length + bot2.length){
+                    // console.log('stepbranch top ',this.ExpToString(ttop1), this.ExpToString(ttop2) )
+                    // console.log('stepbranch bot ',this.ExpToString(tbot1), this.ExpToString(tbot2) )
+                    return [top1,top2]
+                }else{
+                    // console.log('stepbranch top ',this.ExpToString(ttop1), this.ExpToString(ttop2) )
+                    // console.log('stepbranch bot ',this.ExpToString(tbot1), this.ExpToString(tbot2) )
+                    return [bot1,bot2]
+                }
+            }
+            let [ttop1, ttop2] = this.TrimBothWays(top1, top2)
+            let [tbot1, tbot2] = this.TrimBothWays(bot1, bot2)
+            // console.log('StepBranch top after : ',this.ExpToString(ttop1), this.ExpToString(ttop2))
+            // console.log('StepBranch bot after: ',this.ExpToString(tbot1), this.ExpToString(tbot2))
+            if(this.ExpsIsRule(ttop1, ttop2) && this.ExpsIsRule(tbot1, tbot2)){
+                if(ttop1.length + ttop2.length > tbot1.length + tbot2.length){
+                    // console.log('stepbranch top ',this.ExpToString(ttop1), this.ExpToString(ttop2) )
+                    // console.log('stepbranch bot ',this.ExpToString(tbot1), this.ExpToString(tbot2) )
+                    return [ttop1,ttop2]
+                }else{
+                    // console.log('stepbranch top ',this.ExpToString(ttop1), this.ExpToString(ttop2) )
+                    // console.log('stepbranch bot ',this.ExpToString(tbot1), this.ExpToString(tbot2) )
+                    return [tbot1,tbot2]
+                }
+            }
+        }
+        return [t1,t2]
+    }
+
+    isBranch(opt){
+        if(opt.Opparam){
+            if(opt.Opparam[0]){
+                return true
+            }
+        }
+        return false 
+    }
+
+
+    ///monka! so here is what we are gonna do :
+    //to check if a proofstep is satisfiable via the insertion rule production process,
+    //we need to achieve 2 things:
+    //  1. get all subexpression
+    //  2. check whether a subexpression matches any expression in allrules, if so, substitute the expression and check if matches the right side of the proofstep
+      
+    // ABCDE
+    // outer loop:
+    // A, AB, ABC,ABCD,ABCDE
+    // B, BC, BCD, BCDE
+    // C, CD, CDE
+    // D, DE
+    // E
+
+
+    cloneExp(exp){
+        return this.genRule('!,@,'+this.ExpToString(exp)).rightexps
+    }
+    getAlltrimedback(exp){
+        let allexps = []
+        let i = 0 
+        while(i < exp.length){
+            let subexp = [].concat(exp.slice(0,i+1))
+            if(this.isBranch(exp[i])){
+                let br = this.getFirstBr(subexp)
+                let [top, bot] = this.getTopBot(exp,br)
+                let [toplist, botlist] = [[[]].concat(this.getAlltrimedback(top)), [[]].concat(this.getAlltrimedback(bot))] 
+                for(const topexp of toplist){
+                    for(const botexp of botlist){
+                        const subexp2 = this.updateBr(this.cloneExp(subexp), topexp, botexp, br)
+                        allexps.push(subexp2)
                     }
                 }
-                ret.push(e)
-
+                i = br.index + br.top + br.bot
+            }else{
+                allexps.push(subexp)
             }
-            ti +=1
+            i+= 1
         }
-        // console.log(ret)
-    
-        return ret
+        return allexps
     }
+    getAlltrimedfront(exp){
+        let allexps = []
+        let i = exp.length-1 
+        while(0 <= i){
+            let subexp = [].concat(this.cloneExp(exp).slice(i,exp.length))
+            // console.log('!', this.ExpToString(subexp))
+            let br = this.getLastBr(exp)
+            console.log(i < this.getBranchEnd(exp,br), i > br.index, this.ExpToString(subexp))
+            // console.log('!', this.ExpToString(exp),this.getBranchEnd(exp,br), br.index, br.top, br.bot)
+            if(br.index != 0 && i < this.getBranchEnd(exp,br) && i > br.index){
+                subexp = this.cloneExp([exp[br.index]].concat(this.cloneExp(subexp)))
+                let br2 = this.getLastBr(subexp)
+                subexp = this.updateBr(subexp,[],[],br2)
+                console.log('!', this.ExpToString(subexp))
+                let [top, bot] = this.getTopBot(exp,br)
+                console.log('!', this.ExpToString(top ))
+                console.log('!', this.ExpToString(bot ))
 
-    getBrandindex(exp){
-        let i = 0
-        for(const e of exp){
-            if(e.Opparam){
-                if(e.Opparam[0]){
-                    return [e,i]
+                let [toplist, botlist] = [[[]].concat(this.getAlltrimedfront(top)), [[]].concat(this.getAlltrimedfront(bot))] 
+                
+                for(const topexp of toplist){
+                    for(const botexp of botlist){
+                        // console.log(this.ExpToString(topexp))
+                        // console.log(this.ExpToString(botexp))
+                        // console.log(this.ExpToString(subexp))
+
+                        const subexp2 = this.updateBr(this.cloneExp(subexp), topexp, botexp, br2)
+                        // console.log('!', this.ExpToString(subexp2))
+
+                        allexps.push(subexp2)
+                    }
                 }
+                i = br.index 
+            }else{
+                allexps.push(subexp)
             }
-            else{
-                i+= 1
-            }
+            i -= 1
         }
+        return allexps
     }
+    getAllSubExps(exp){
+        let allexps = []
+        let i = 0 
+        while(i < exp.length){
+            let subexp = []
+            let trimbacklist = this.getAlltrimedback(exp.slice(i, exp.length))
+            i += 1
 
-    trim_and_check(parsed_newrule) {
-
-        const t = this.genRule('!'+this.ExpToString(parsed_newrule.leftexps)+'@'+this.ExpToString(parsed_newrule.rightexps))
-
-
-        // console.log('before trim: ', this.RuleToString(parsed_newrule))
-        let [long, short] = this.Trim(t.leftexps, t.rightexps)
-
-        let trimrule = '! ' + this.ExpToString(short) + ' @ ' + this.ExpToString(long)
-        // console.log('after trim: ', trimrule)
-
-        let parsed_trimrule = this.genRule(trimrule)
-        if(!this.isRule(parsed_trimrule)){
-            parsed_trimrule = this.Operands_normalize(parsed_trimrule)
         }
-        
-        //dont pass the original rule, pass copies of the expression
-        let ret =[]
-        
-        if(this.isRule(parsed_trimrule)){
-            ret.push(parsed_trimrule)
-            return ret
-        }
-        
-        //trim branch trim top and bot of both expressions, does not include branch
-        console.log('before trimbr: ', this.RuleToString(parsed_trimrule))
-        let trimbr = this.TrimBranch(parsed_trimrule)
-        console.log('after trimbr: ', this.RuleToString(trimbr))
-        if(this.isRule(trimbr)){
-
-            ret.push(trimbr)
-            return ret
-        }
-        // console.log('before TrimBranchFront: ', this.RuleToString(trimbr))
-
-        let [left,right] = this.TrimBranchFront(trimbr)
-        let trimbrf = this.genRule(this.ExpToString(left)+'@'+this.ExpToString(right))
-        // console.log('after TrimBranchFront: ', this.RuleToString(trimbrf))
-
-        if(this.isRule(trimbrf)){
-            ret.push(trimbrf)
-            return ret
-        }
-        if(ret.length == 0)ret.push(-1)
-        // console.log('empty')
-        return ret
+        return allexps 
     }
-
-    Trimfront(left, right, flag = true){
-        let li = 0
-        let brl = this.getFirstBr(left)
-        let lend = brl.index == -1 ? left.length: brl.index
-        let brr = this.getFirstBr(right)
-        let rend = brr.index == -1 ? right.length: brr.index
-        while(li < lend && li < rend){
-            if(this.Same([left[li]], [right[li]])){
-                let rule = this.genRule('!' + this.ExpToString(left.slice(li, left.length))+'@'+this.ExpToString(right.slice(li, right.length)))
-                if(this.isRule(rule) && flag){
-                    break
+    MatchandCheck(left, right){
+        let subexps = this.getAllSubExps(left)
+        for(const sub of subexps){
+            let exp = this.genRule('!,@'+sub[0]).rightexps
+            let beg = sub[1]
+            let end = sub[2]
+            for(const r of this.allrules){
+                let rl = r.leftexps 
+                let rr = r.rightexps 
+                if(pf.OperandEquivalence(exp, rl)){
+                    let check = this.genRule('!'+this.ExpToString(right)+ '@'+ beg.concat(this.ExpToString(rl)).concat(end))
+                    if(this.Same(right,check)){
+                        return true 
+                    }
                 }
-                li += 1                
-            }
-            else{
-                break
+                if(pf.OperandEquivalence(exp, rr)){
+
+                }
+                
             }
         }
-        return [left.slice(li, left.length), right.slice(li, right.length)] 
+        
     }
 
-    Trimfront2(left, right){
+    TrimBothWays(left,right){
+        let [tbot1, tbot2] = this.Trim1(this.genRule('!'+this.ExpToString(left) + '@'+ this.ExpToString(right)))
+        if(!this.ExpsIsRule(tbot1, tbot2)){
+            [tbot1, tbot2] = this.Trim2(this.genRule('!'+this.ExpToString(left) + '@'+ this.ExpToString(right)))
+        }
+        return [tbot1, tbot2]
+    }
 
-        let leftbr = this.getFirstBr(left)
-        let rightbr = this.getFirstBr(right)
-        if(leftbr.index == 0 && rightbr.index == 0){
-            return this.TrimBranchFront(left,right)
-        }else{
-            if(this.Same([left[0]], [right[0]])){
-                return [left.slice(1, left.length), right.slice(1, right.length)] 
-            }
+    Trim1(r) {
+        // console.log('TRIM1')
+        const t = this.genRule('!'+this.ExpToString(r.leftexps)+'@'+this.ExpToString(r.rightexps))
+        let prevlefts = [t.leftexps]
+        let r1 = this.TrimFrontOnce(t.leftexps, t.rightexps, true)
+        let left = r1[0]
+        let right = r1[1]
+        if(this.ExpsIsRule(left,right)){
             return [left,right]
         }
-    }
-    Trimback2(left, right){
+        while(left.length < prevlefts[prevlefts.length-1].length){
+            let left2 = left 
+            let right2 = right
+            let prevlefts2 = [left2]
 
-        let leftbr = this.getLastBr(left)
-        let rightbr = this.getLastBr(right)
-        if(leftbr.index != -1 && rightbr.index != -1){
-            if(leftbr.index+leftbr.top+leftbr.bot == leftbr.length-1 && rightbr.index+rightbr.top+rightbr.bot == rightbr.length-1)
-                return this.TrimBranchBack(left,right)
-        }else{
-            if(this.Same([left[left.length - 1]], [right[right.length - 1]])){
-                return [left.slice(0, left.length-1), right.slice(0, right.length-1)] 
+            let r2 = this.TrimBackOnce(left2, right2, true)
+            left2 = r2[0] 
+            right2 = r2[1]
+            if(this.ExpsIsRule(left2,right2)){
+                return [left2,right2]
             }
+            while(left2.length < prevlefts2[prevlefts2.length-1].length){
+                r2 = this.TrimBackOnce(left2, right2, true)
+                prevlefts2.push(left2)
+                left2 = r2[0]
+                right2 = r2[1]
+                // console.log('!!!',this.ExpToString(left2), this.ExpToString(right2), this.ExpsIsRule(left2,right2))
+                if(this.ExpsIsRule(left2,right2)){
+                    return [left2,right2]
+                }
+            }
+
+            r1 = this.TrimFrontOnce(left, right, true)
+            prevlefts.push(left)
+            left = r1[0]
+            right = r1[1]
+            if(this.ExpsIsRule(left,right)){
+                return [left,right]
+            }
+        }
+        return [left,right]
+    }
+    Trim2(r) {
+        // console.log('TRIM2')
+        const t = this.genRule('!'+this.ExpToString(r.leftexps)+'@'+this.ExpToString(r.rightexps))
+        let prevlefts = [t.leftexps]
+        let r1 = this.TrimBackOnce(t.leftexps, t.rightexps, true)
+        let left = r1[0]
+        let right = r1[1]
+        if(this.ExpsIsRule(left,right)){
             return [left,right]
         }
-    }
-
-    Trimback(left, right){
-        let [long, short] = [left.length < right.length ? right : left, left.length < right.length ? left:right]
-        let li = left.length < right.length ? right.length-1 : left.length-1 
-        let lj = left.length < right.length ? left.length-1 : right.length-1
-        let brl = this.getFirstBr(long)
-        let brs = this.getFirstBr(short)
-        let lend = brl.index == -1 ? -1 : brl.index + brl.top + brl.bot
-        let send = brs.index == -1 ? -1 : brs.index + brs.top + brs.bot
-
-        while(li >= 0 && li > lend && lj > send){
-            if(this.Same([long[li]], [short[lj]])){
-                let rule = this.genRule('!' + this.ExpToString(long.slice(0, li+1))+'@'+this.ExpToString(short.slice(0, lj+1)))
-                if(this.isRule(rule)){
-                    break
+        while(left.length < prevlefts[prevlefts.length-1].length){
+            let left2 = left 
+            let right2 = right
+            let prevlefts2 = [left2]
+            let r2 = this.TrimFrontOnce(left2, right2, true)
+            left2 = r2[0] 
+            right2 = r2[1]
+            if(this.ExpsIsRule(left2,right2)){
+                return [left2,right2]
+            }
+            while(left2.length < prevlefts2[prevlefts2.length-1].length){
+                r2 = this.TrimFrontOnce(left2, right2, true)
+                prevlefts2.push(left2)
+                left2 = r2[0]
+                right2 = r2[1]
+                if(this.ExpsIsRule(left2,right2)){
+                    return [left2,right2]
                 }
-                li -= 1
-                lj -= 1                
-            
             }
-            else{
-                break
-            }
-        }
-        return [long.slice(0, li+1), short.slice(0, lj+1)]
-    }
-
-    Trim(left, right){
-        if(left.length == 0 || right.length == 0) return [left,right]
-        let [ftl, ftr] = this.Trimfront(left,right) 
-        // console.log('ftl: ', this.ExpToString(ftl), 'ftr: ', this.ExpToString(ftr))
-        let [etl, ets] = this.Trimback(ftl,ftr) 
-        return [etl, ets]
-    }
-
-    getFirstDiffBr(pleft, pright){
-        let l = this.getFirstBr(pleft)
-        let r = this.getFirstBr(pright)
-        let t = pleft[l.index]
-        if(t){
-            if(t.Opparam){
-                if(t.Opparam[0] == '#100')console.log('!!!',[pleft[l.index]],[pright[r.index]])
+            r1 = this.TrimBackOnce(left, right, true )
+            prevlefts.push(left)
+            left = r1[0]
+            right = r1[1]
+            if(this.ExpsIsRule(left,right)){
+                return [left,right]
             }
         }
-        if(this.Same([pleft[l.index]],[pright[r.index]]) && this.Same(pleft.slice(l.index+l.top+l.bot, pleft.length), pright.slice(r.index+r.top+r.bot, pright.length))){
-            l = this.getFirstBr(pleft.slice(l.index, pleft.length))
-            r = this.getFirstBr(pright.slice(r.index, pright.length))
-        }
-        return [l,r]
-
+        
+        return [left,right]
     }
-    TrimBranchFront(left,right){
+    ExpsIsRule(left,right){
+        let t = this.genRule(this.ExpToString(left)+'@'+this.ExpToString(right))
+        if(this.isRule(t)){
+            return true
+        }
+
+        let normt = this.Operands_normalize(t)
+        if(this.isRule(normt)){
+            return true
+        }
+        
+        return false
+    }
+    TrimFrontOnce(left,right, trimtillfail){
 
         if(left.length ==0  || right.length ==0) return [left,right]
-        console.log('step', this.ExpToString(left), this.ExpToString(right))
+        // console.log('step front', this.ExpToString(left), this.ExpToString(right))
 
         let [pleft, pright] = [left, right]
         let [leftbr, rightbr] = [this.getFirstBr(pleft), this.getFirstBr(pright)]
-        let [topl, botl] = this.getTopBot(pleft, leftbr)
-        let [topr, botr] = this.getTopBot(pright, rightbr)
-        let [toplbr,botlbr] = [this.getFirstBr(topl), this.getFirstBr(botl)]
-        let [toprbr,botrbr] = [this.getFirstBr(topr),this.getFirstBr(botr)]
-        if(leftbr.index == 0 && rightbr.index == 0){
-            if((toplbr.index == 0 && toprbr.index == 0 && toplbr.top != 0 && toplbr.bot != 0 && toprbr.top != 0 && toprbr.bot != 0 )){
-                let ret  = this.TrimBranchFront(topl,topr)
-                topl = ret[0]
-                topr = ret[1]
-                pleft = this.updateBr(pleft,topl, botl,leftbr)
-                pright = this.updateBr(pright,topr ,botr, rightbr)
-                
-            }
-            if(botlbr.index == 0 && botrbr.index == 0 && botlbr.top != 0 && botlbr.bot != 0 && botrbr.top != 0 && botrbr.bot != 0 ){
-                let ret  = this.TrimBranchFront(topl,topr)
-                topl = ret[0]
-                topr = ret[1]
-                pleft = this.updateBr(pleft,topl, botl,leftbr)
-                pright = this.updateBr(pright,topr ,botr, rightbr)
-            }
-        }
-        else if(this.Same([pleft[0]], [pright[0]])){
-            pleft = pleft.slice(1, pleft.length)
-            pright = pright.slice(1, pright.length)
-        }
 
-        console.log('ret: ', this.ExpToString(pleft), this.ExpToString(pright))
+        if((leftbr.index != 0 && rightbr.index != 0)||
+            (leftbr.index == 0 && rightbr.index == 0 && leftbr.top == 0 && leftbr.bot == 0 && rightbr.top == 0 && rightbr.bot == 0) 
+        ){
+            if(this.Same([pleft[0]], [pright[0]])){
+                pleft = pleft.slice(1, pleft.length)
+                pright = pright.slice(1, pright.length)
+                // console.log('Same', this.ExpToString(pleft),'@', this.ExpToString(pright))
+            }
+        }
+        else{
+            let [topl, botl] = this.getTopBot(pleft, leftbr)
+            let [topr, botr] = this.getTopBot(pright, rightbr)
+            console.log('!!!',this.ExpToString(topl), this.ExpToString(topr), this.ExpsIsRule(topl,topr))
+            console.log('!!!',this.ExpToString(botl), this.ExpToString(botr), this.ExpsIsRule(botl,botr))
+            //trim the top first, if top expressions form a rule, then don't trim the bot,
+            // this is to work in tandem with check branch,
+            //check branch checks if top and bot contain rules.
+            //if top or bot already forms a rule, then do not trim.
+            if(!this.ExpsIsRule(botl, botr) || trimtillfail){
+                let retb  = this.TrimFrontOnce(botl,botr)
+                botl = retb[0]
+                botr = retb[1]
+                if(this.ExpsIsRule(botl, botr)  ){
+
+                }
+            }
+
+            if(!this.ExpsIsRule(topl, topr) || trimtillfail){
+                let rett = this.TrimFrontOnce(topl,topr)
+                topl = rett[0]
+                topr = rett[1]
+            }
+            // if(!this.ExpsIsRule(topl, topr)){
+            // }
+    
+            pleft = this.updateBr(pleft,topl, botl,leftbr)
+            pright = this.updateBr(pright,topr ,botr, rightbr)
+        }
+        // console.log('ret front: ', this.ExpToString(pleft), this.ExpToString(pright))
         return [pleft,pright]
     }
+    TrimBackOnce(left,right, trimtillfail){
+        if(left.length ==0  || right.length ==0) return [left,right]
+        // console.log('step back', this.ExpToString(left), this.ExspToString(right))
 
+        let [pleft, pright] = [left, right]
+        let [leftbr, rightbr] = [this.getLastBr(pleft), this.getLastBr(pright)]
+
+        // console.log('ret back: ',leftbr, rightbr)
+        // console.log(this.getBranchEnd(pleft,leftbr),pleft.length)
+        // console.log(this.getBranchEnd(pright,rightbr) , pright.length)
+
+
+        if((this.getBranchEnd(pleft,leftbr) < pleft.length && this.getBranchEnd(pright,rightbr) < pright.length)
+            || (leftbr.index == -1 && rightbr.index == -1)
+            || (leftbr.index == pleft.length-1 && rightbr.index == pright.length-1)
+        ){
+            // console.log('!!!: ', this.ExpToString(pleft), this.ExpToString(pright))
+
+            if(this.Same([pleft[pleft.length-1]],[pright[pright.length-1]])){
+                pleft = pleft.slice(0,pleft.length-1)
+                pright = pright.slice(0,pright.length-1)
+            }
+        }else{
+            let [topl, botl] = this.getTopBot(pleft, leftbr)
+            let [topr, botr] = this.getTopBot(pright, rightbr)
+            if(!this.ExpsIsRule(topl, topr) || trimtillfail){
+                let ret1  = this.TrimBackOnce(topl,topr)
+                topl = ret1[0]
+                topr = ret1[1]
+            }
+            if(!this.ExpsIsRule(botl, botr) || trimtillfail){
+                let ret2 = this.TrimBackOnce(botl,botr)
+                botl = ret2[0]
+                botr = ret2[1]
+            }
+            
+            pleft = this.updateBr(pleft,topl, botl, leftbr)
+            pright = this.updateBr(pright,topr, botr, rightbr)
+        }
+        // console.log('ret back: ', this.ExpToString(pleft), this.ExpToString(pright))
+        return [pleft,pright]
+    }
     getNumOpt(exp){
         let i = 0 
         let count = 0
@@ -378,13 +523,28 @@ class ProofAssistant {
         return count.toString()
     }
 
+    getBranchEnd(exp, br){
+        if(br.index == -1) return 0  
+        let i = br.index
+        let end = br.index +1
+        while(i < end){
+            if(exp[i].Opparam){
+                if(exp[i].Opparam[0]){
+                    end += parseInt(exp[i].Opparam[1][1]) + parseInt(exp[i].Opparam[2][1])
+                }
+            }
+            i+= 1
+        }
+        return end
+    }
+
     getTopBot(exp, br){
         if(br.index == -1) return [[],[]] 
         let topend = br.index + br.top 
-        let t = br.index 
+        let t = br.index +1
         let top = []
         let bot =[]
-        if(br.top != 0) t += 1
+
         while(t <= topend){
             if(!exp[t]) break
             top.push(exp[t])
@@ -396,6 +556,7 @@ class ProofAssistant {
             t += 1   
         }
         let botend = topend + br.bot 
+
         while(t <= botend){
             if(!exp[t]) break
             bot.push(exp[t])
@@ -409,162 +570,16 @@ class ProofAssistant {
         }
         return [top,bot]
     }
-    updateBr(exp, topexp, botexp, br){
+    updateBr(texp, topexp, botexp, br){
+        let exp = texp.slice(0,texp.length)
         if(br.index == -1) return exp
         exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp)
         exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp)
-        let range = this.getTopBot(exp, br).length
-        let end = exp.slice(br.index + range + 1, topexp.length)
+        let [top, bot] = this.getTopBot(exp, br)
+        let range = top.length + bot.length
+        let end = exp.slice(br.index + range + 1, exp.length)
         exp = exp.slice(0, br.index+1).concat(topexp).concat(botexp).concat(end)
         return exp
-    }
-    TrimBranchBack(left,right){
-        if(!left || !right) return [left,right]
-        // console.log('step', this.ExpToString(left), this.ExpToString(right))
-
-        let [pleft, pright] = [left, right]
-        let [leftbr, rightbr] = [this.getLastBr(pleft), this.getLastBr(pright)]
-        let [topl, botl] = this.getTopBot(pleft, leftbr)
-        let [topr, botr] = this.getTopBot(pright, rightbr)
-        let [toplbr,botlbr] = [this.getLastBr(topl), this.getLastBr(botl)]
-        let [toprbr,botrbr] = [this.getLastBr(topr),this.getLastBr(botr)]
-
-        //recursion
-        if(toplbr.index != -1 && toprbr.index != -1 && toplbr.top != 0 && toplbr.bot != 0 && toprbr.top != 0 && toprbr.bot != 0 ){
-            let ret  = this.TrimBranchBack(topl,topr)
-            topl = ret[0]
-            topr = ret[1]
-            pleft = this.updateBr(pleft,topl, botl,leftbr)
-            pright = this.updateBr(pright,topr ,botr, rightbr)
-        }
-        else if(this.Same([topl[topl.length-1]], [topr[topr.length-1]])){
-            let x = [topl.slice(0, topl.length-1),topr.slice(0, topr.length-1)]
-            topl = x[0]
-            topr = x[1]
-            pleft = this.updateBr(pleft,topl, botl,leftbr)
-            pright = this.updateBr(pright,topr,botr, rightbr)
-        }
-        
-        if(botlbr.index != -1 && botrbr.index != -1 && botlbr.top != 0 && botlbr.bot != 0 && botrbr.top != 0 && botrbr.bot != 0){
-            let ret = this.TrimBranchBack(botl,botr)
-            botl = ret[0]
-            botr = ret[1]
-            pleft = this.updateBr(pleft,topl, botl, leftbr)
-            pright = this.updateBr(pright,topr,botr, rightbr)
-        }
-        else if(this.Same([botl[botl.length-1]], [botr[botr.length-1]])){
-            let x = [botl.slice(0, botl.length-1),botr.slice(0, botr.length-1)]
-            botl = x[0]
-            botr = x[1]
-            pleft = this.updateBr(pleft,topl, botl, leftbr)
-            pright = this.updateBr(pright,topr, botr, rightbr)
-        }  
-        
-
-        // console.log('ret: ', this.ExpToString(pleft), this.ExpToString(pright))
-        return [pleft,pright]
-    }
-
-    isBranch(exp){
-        if(!exp.Opparam) return false
-        if(this.BrOperators.includes(exp.Opparam[0])) return true 
-        else return false 
-    }
-    TrimBranch(pr){
-        let [pleft, pright] = [pr.leftexps, pr.rightexps]
-        if(!this.isBranch(pleft[0])||!this.isBranch(pright[0])){
-            return pr
-        }
-        let [leftbr, rightbr] = [this.getFirstBr(pleft), this.getFirstBr(pright)]
-
-        if (leftbr.index == -1 || rightbr.index == -1) return pr
-        let topr = pright.slice( (rightbr.top == 0 ? rightbr.index+rightbr.top +1: rightbr.index+1) , rightbr.index+rightbr.top+1)
-        let topl = pleft.slice( (leftbr.top == 0 ? leftbr.index+leftbr.top +1: leftbr.index+1) , leftbr.index+leftbr.top+1)
- 
-        let botr = pright.slice((rightbr.bot == 0? rightbr.index+1+rightbr.top+rightbr.bot: rightbr.index+rightbr.top+1) , rightbr.index+rightbr.top+rightbr.bot+1)
-        let botl = pleft.slice((leftbr.bot == 0 ? leftbr.index+1+leftbr.top+leftbr.bot: leftbr.index+leftbr.top+1) , leftbr.index+leftbr.top+leftbr.bot+1)
-
-        let [ttl, ttr] = this.Trim(topl, topr)
-        if(topl.length < topr.length){
-            let temp = ttr 
-            ttr = ttl 
-            ttl = temp
-        }
-
-        let [tbl, tbr] = this.Trim(botl, botr)
-        if(botl.length < botr.length){
-            let temp = tbr 
-            tbr = tbl 
-            tbl = temp
-        }
-
-        pleft[leftbr.index].Opparam[1] = '$'+ttl.length.toString()
-        pleft[leftbr.index].Opparam[2] = '$'+tbl.length.toString()
-        pright[rightbr.index].Opparam[1] = '$'+ttr.length.toString()
-        pright[rightbr.index].Opparam[2]= '$'+tbr.length .toString()
-
-        let tr = this.genRule('!'+this.ExpToString(ttl)+ '@' + this.ExpToString(ttr))
-        let br = this.genRule('!'+this.ExpToString(tbl)+ '@' + this.ExpToString(tbr))
-
-        
-        if(this.isRule(tr) && this.isRule(br)) return tr
-
-        let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-        pleft= pleft.slice(0, leftbr.index+1).concat(ttl).concat(tbl).concat(plend)
-        let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-        pright= pright.slice(0, rightbr.index+1).concat(ttr).concat(tbr).concat(prend)
-
-        return this.genRule('!'+this.ExpToString(pleft)+ '@' +this.ExpToString(pright))
-    }
-    TrimBranch2(left, right, leftcopy, rightcopy){
-        // console.log('here', left,right)
-
-        let [leftbr, rightbr] = [this.getFirstBr(left), this.getFirstBr(right)]
-
-        if (leftbr.index == -1 || rightbr.index == -1) return [left, right]
-        let topr = right.slice( (rightbr.top == 0 ? rightbr.index+rightbr.top +1: rightbr.index+1) , rightbr.index+rightbr.top+1)
-        let topl = left.slice( (leftbr.top == 0 ? leftbr.index+leftbr.top +1: leftbr.index+1) , leftbr.index+leftbr.top+1)
- 
-        let botr = right.slice((rightbr.bot == 0? rightbr.index+1+rightbr.top+rightbr.bot: rightbr.index+rightbr.top+1) , rightbr.index+rightbr.top+rightbr.bot+1)
-        let botl = left.slice((leftbr.bot == 0 ? leftbr.index+1+leftbr.top+leftbr.bot: leftbr.index+leftbr.top+1) , leftbr.index+leftbr.top+leftbr.bot+1)
-        let [ttl, ttr] =[topl,topr]
-        let [tbl, tbr] =[botl,botr]
-
-
-
-        if(topr.length != 0 && topl.length != 0){
-            [ttl, ttr] = this.TrimBranch2(topl, topr,leftcopy,rightcopy)
-        }
-
-        if(botr.length != 0 && botl.length != 0){
-            [tbl, tbr] = this.TrimBranch2(botl, botr,leftcopy,rightcopy)
-        }
-
-        let [pleft, pright] = this.Trim(left, right)
-        if(left < right){
-            let temp = pleft 
-            pright = pleft 
-            pleft = temp
-        }
-
-        pleft[leftbr.index].Opparam[1] = '$'+ttl.length.toString()
-        pright[rightbr.index].Opparam[1] = '$'+ttr.length.toString()
-
-        pleft[leftbr.index].Opparam[2] = '$'+tbl.length.toString()
-        pright[rightbr.index].Opparam[2]= '$'+tbr.length .toString()
-
-        let plend = pleft.slice(leftbr.index + leftbr.top + leftbr.bot + 1, pleft.length)
-        pleft= pleft.slice(0, leftbr.index+1).concat(ttl).concat(tbl).concat(plend)
-        let prend = pright.slice(rightbr.index + rightbr.top + rightbr.bot + 1, pright.length)
-        pright= pright.slice(0, rightbr.index+1).concat(ttr).concat(tbr).concat(prend)
-
-        //if branch are the first operation in both expressions then we can 
-
-        //return top expression if both top and bot are equivalent 
-
-
-        return [pleft,pright]
-
     }
 
     //operands of left and right exps are equivalent iff 
@@ -806,7 +821,7 @@ class ProofAssistant {
         }
         return retr 
     }
-    checkcv2(srcr, tarr){
+    checkcv(srcr, tarr){
         let sleft = srcr.leftexps
         let sright = srcr.rightexps
         let tleft = tarr.leftexps 
@@ -868,7 +883,7 @@ class ProofAssistant {
             
             
 
-            if(this.checkcv2(relation, rule)) {
+            if(this.checkcv(relation, rule)) {
                 return true
             }
             if(debug){
@@ -995,15 +1010,11 @@ class ProofAssistant {
                     }
                 }
                 else if(e.operands){
-                    for(const opr of e.operands) {
-                        ret.push(opr)
-                    }
+                    ret.concat(e.operands)
                 }
             }
             else if(e.operands){
-                for(const opr of e.operands) {
-                    ret.push(opr)
-                }
+                ret.concat(e.operands)
             }
         }
         return ret
@@ -1112,30 +1123,6 @@ class ProofAssistant {
         return true 
     }
 
-    //--ML data--
-    rule_to_mldata(r){
-        let rr = r.rightexps
-        let rl = r.leftexps
-        // console.log(rr, rl)
-        const ret = []
-
-        ret.push('')
-        for(const e of rr){
-            if(!e.operator) continue
-
-            let d = e.operator.trim()
-            if(!ret.includes(d))
-                ret.push(d)
-        }
-        for(const e of rl){
-            if(!e.operator) continue
-
-            let d = e.operator.trim()
-            if(!ret.includes(d))
-                ret.push(d)
-        }
-        return ret
-    } 
 
     //--Tools--
     //these expression are generate by incrementing operator and generator similar looking expressions
@@ -1249,69 +1236,9 @@ class ProofAssistant {
         return sl
     }
 
-    //will have operations that are not semantically correct, but all the right ones are in there lol
-    Generate_sim_exps(exp){
-        let ret = []
-        // console.log(this.AllOperators)
-        let op = ''
-        let i = 0 
-        let found = false
-        while(i < exp.length) {
-            let c = exp[i]
-            if(c == ' ' || c == ',' || c =='$' || c =='&') {
-                found = false
-                //binary
-                for(const bin of this.binaryOperators){
-
-                    if(bin == op){
-                        for(const bin2 of this.binaryOperators){
-                            let p = exp.replaceAll(op + ' ', bin2 + ' ')
-
-                            ret.push(p)
-                        }
-                        op = ''
-                    }
-                }
-                //unary
-                for(const unary of this.unaryOperators){
-
-                    if(unary == op){
-                        for(const unary2 of this.unaryOperators){
-                            let p = exp.replaceAll(op + ' ', unary2 + ' ')
-                            ret.push(p)
-                        }
-                        op = ''
-                    }
-                }
-                for(const brop of this.BrOperators){
-                    if(brop == op){
-                        for(const brop2 of this.BrOperators){
-                            let p = exp.replaceAll(op + ' ', brop2 + ' ')
-
-                            ret.push(p)
-                        }
-                        op = ''
-
-                    }
-                }
-            }
-            if(c == '#') {
-                found = true
-                
-            }
-            if(found) {
-                op += c
-            }
-            i += 1
-            
-        }
-        let s = new Set(ret)
-        let sl = Array.from(s)
-        if(sl.length == 0 ) return [exp]
-        return sl
-    }
 
     listequal(src,tar){
+        if(src.length != tar.length) return false 
         let i = 0
         while(i<src.length){
             if(src[i] != tar[i]){

@@ -52,46 +52,24 @@ fs.readdirSync('./theorems/').forEach(file => {
     tstatements.push(tts)
     allexps.push(texps)
 })
-// console.log(allexps[0])
-// console.log(allexps[0].length, tstatements[0].length)
+
 let pf = new ProofAssistant(allrules, latexparser, [])
-// let r = latexparser.Parse('!, #100 $1 $1 #15 1 3, @,  #100 $1 $1 #15 1 3,')
-// console.log(pf.Same(r.leftexps,r.rightexps))
-// console.log(latexparser.branch)
-
-// let t = pf.genRule('! , #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #4 1 , @ , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
-// let x = pf.TrimBranch2(t.leftexps,t.rightexps)
-
-let t1 = pf.genRule('! , #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
-// let t2 = pf.genRule('! ,#101 $1 $2 #10 2 3 ,#4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #101 $0 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
-// let t3 = pf.genRule('! ,#101 $2 $2 #10 2 3 ,#4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #101 $1 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,#101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
-// let t3 = pf.genRule('! #4 1 ,#101 $2 $2 #10 2 3 ,#4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , #4 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , @ , #4 1 , #4 1 , #101 $1 $1 #10 2 3 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 ,#101 $1 $1 #10 2 3 , #4 1 , #4 1 ,')
-
-// let lastbr = pf.getLastBr(t1.leftexps)
-// console.log(lastbr)
-
-let x1 = pf.TrimBranchFront(t1.leftexps,t1.rightexps)
-
-// let x2 = pf.TrimBranchBack(x1[0], x1[1])
-// console.log(pf.getFirstBr(t3.leftexps))
-// let gettopbotexample = pf.getTopBot(t3.leftexps, pf.getFirstBr(t3.leftexps))
-// console.log(pf.ExpToString(gettopbotexample[0]),'!', pf.ExpToString(gettopbotexample[1]))
-console.log(pf.ExpToString(x1[0]),pf.ExpToString(x1[1]))
-
-// console.log(pf.ExpToString(x1[0])+'@'+pf.ExpToString(x1[1]))
-// let y = pf.parser.RuleNormalize('')
-// console.log(x)
-
-// console.log(pf.Trim2(x.leftexps, x.rightexps))
 // pf.PrintAllRules()
-// console.log(pf.isRule(pf.genRule('!,#0,@, #100 $0 $0 #10 1 2 ,')))
-// console.log(pf.isRule(pf.genRule('! , #15 1 2 , @ , #15 2 1 ,')))
-// let ps = new ProofStrategy(pf, tstatements, allexps)
+let r = pf.genRule('!, #13 1 , #102 $2 $1 , #13 1 , #102 $2 $1 , #13 1 , #5 1 , #6 1  ,#7 1 , #13 1 , @ ,')
+let r2 = pf.genRule('!, #13 1 , #102 $1 $1 , #13 1 , #102 $1 $0 , #13 1 ,@ ,')
+// let r2 = pf.genRule('!, #7 2 1 , #5 4, #4 5, @ ,')
+// console.log(pf.OperandEquivalence(r, r2))
+// console.log(pf.TrimAndCheck(r))
+// console.log(pf.TrimAndCheck(r))
+let x = pf.getAlltrimedfront(r2.leftexps)
+for(const exp of x){
+    console.log(pf.ExpToString(exp))
+}
+// console.log()
+
+let ps = new ProofStrategy(pf, tstatements, allexps)
 // ps.Init()
 
-// console.log(pf.isRule( pf.genRule('!,#11, @, #0,')))
-
-// console.log(latexparser.branch)
-// console.log(pf.parser.branch)
-// console.log(latexparser.unaryOperators)
-// console.log(latexparser.binaryOperators)
+// console.log(pf.Operands_normalize(r))
+// console.log(r.leftexps)
+// console.log(pf.firstIsSameBranch(r.leftexps,r.rightexps))
