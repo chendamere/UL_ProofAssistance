@@ -55,21 +55,19 @@ fs.readdirSync('./theorems/').forEach(file => {
 
 let pf = new ProofAssistant(allrules, latexparser, [])
 // pf.PrintAllRules()
-let r = pf.genRule('!, #13 1 , #100 $2 $1 , #13 1 , #102 $2 $1 , #13 1 , #5 1 , #6 1  ,#7 1 , #13 1 , @ ,')
-let r2 = pf.genRule('!, #13 1 , #102 $1 $1 , #6 1 , #100 $1 $0 , #7 1 , #5 1, @ ,')
-// let r2 = pf.genRule('!, #7 2 1 , #5 4, #4 5, @ ,')
-// console.log(pf.OperandEquivalence(r, r2))
-// console.log(pf.TrimAndCheck(r))
-// console.log(pf.TrimAndCheck(r))
-let x = pf.MatchandCheck(r2.leftexps, r2.rightexps)
-for(const exp of x){
-    console.log(pf.ExpToString(exp))
-}
-console.log()
 
-// let ps = new ProofStrategy(pf, tstatements, allexps)
-// ps.Init()s
+// let rule1 = pf.genRule('! , #4 2 , #3 2 , #4 1 , #4 2 , @, #4 2 , #4 1 , #3 2 , #4 2 , ') 
+// let rule2 = pf.genRule('!  , #3 1 , #4 2 , @ , #4 2 , #3 1 ,') 
+// console.log(pf.isRule(rule2))
+// console.log(pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
+// let branchexp = pf.genRule('!, #3 1, #102 $1 $2 #15 1 2, #6 1 , #10 1 , #7 1, @ ,').leftexps
 
-// console.log(pf.Operands_normalize(r))
-// console.log(r.leftexps)
-// console.log(pf.firstIsSameBranch(r.leftexps,r.rightexps))
+// console.log(pf.ExpToString(rule1.leftexps), pf.ExpToString(rule1.rightexps), pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
+
+// let t = pf.genRule('!,@, #7 1 2 , #4 3 ,').rightexps
+// for(const a of pf.getAllSubExps(rule1.leftexps)){
+//     console.log(pf.ExpToString(a[0]),pf.ExpToString(a[1]),pf.ExpToString(a[2]))
+//     // console.log(a[0],a[1],a[2])
+// }
+let ps = new ProofStrategy(pf, tstatements, allexps)
+ps.Init()
