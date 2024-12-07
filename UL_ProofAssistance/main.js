@@ -56,18 +56,40 @@ fs.readdirSync('./theorems/').forEach(file => {
 let pf = new ProofAssistant(allrules, latexparser, [])
 // pf.PrintAllRules()
 
-// let rule1 = pf.genRule('! , #4 2 , #3 2 , #4 1 , #4 2 , @, #4 2 , #4 1 , #3 2 , #4 2 , ') 
-// let rule2 = pf.genRule('!  , #3 1 , #4 2 , @ , #4 2 , #3 1 ,') 
-// console.log(pf.isRule(rule2))
-// console.log(pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
-// let branchexp = pf.genRule('!, #3 1, #102 $1 $2 #15 1 2, #6 1 , #10 1 , #7 1, @ ,').leftexps
+let rule1 = pf.genRule('!  , #100 $1 $2 #15 1 2 , #11 , #11 , #11 ,   @ , #100 $1 $1 #15 1 2 , #11 , #11 , ') 
 
-// console.log(pf.ExpToString(rule1.leftexps), pf.ExpToString(rule1.rightexps), pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
+// console.log(pf.RuleToString(pf.Operands_normalize(rule2)))
+// console.log(pf.checkcv(rule22, rule2))
+console.log(pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
+// console.log()
 
-// let t = pf.genRule('!,@, #7 1 2 , #4 3 ,').rightexps
-// for(const a of pf.getAllSubExps(rule1.leftexps)){
-//     console.log(pf.ExpToString(a[0]),pf.ExpToString(a[1]),pf.ExpToString(a[2]))
-//     // console.log(a[0],a[1],a[2])
+// let table = {}
+// let x = pf.Operands_normalize_exps(rule1.leftexps, table)
+// console.log(pf.ExpToString(x[0]))
+// let x1 = pf.Operands_normalize_exps(rule2.leftexps, table)
+// let x2 = pf.Operands_normalize_exps(rule2.rightexps, table)
+// console.log(pf.ExpToString(x[0]), table )
+// console.log(pf.flipKeyandValue(table))
+// console.log(pf.ExpToString(x1[0]), table )
+// console.log(pf.ExpToString(x2[0]), table )
+
+// console.log(pf.getOperandSub(rule2.leftexps, rule2.rightexps))
+
+// console.log(pf.ruleInBranch(rule6.leftexps,rule6.rightexps,rule5.leftexps))
+// let r1 = pf.genRule('!,@,'+pf.ExpToString(rule2.leftexps))
+// let s2 = pf.genRule('!,@,'+pf.ExpToString(rule2.rightexps))
+// console.log(pf.checkcv(r1,s2))
+// console.log(pf.ruleInBranch(rule2.leftexps, rule2.rightexps))
+// for (const x of pf.getAllSubExps(rule7.leftexps)){
+//     console.log(pf.ExpToString(x[0]),' --|',pf.ExpToString(x[1]),'|-- ',pf.ExpToString(x[2]))
 // }
-let ps = new ProofStrategy(pf, tstatements, allexps)
-ps.Init()
+
+// let ps = new ProofStrategy(pf, tstatements, allexps)
+// ps.Init()
+// , #100 $1 $1 #10 1 2 , #100 $1 $1 #10 3 4 , #13 5 , #13 6 , #100 $1 $1 #10 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #10 3 4 , #100 $1 $1 #10 1 2 , #13 5 , #13 7 , #100 $1 $1 #10 1 2 , #13 6 , #13 8 ,
+
+// , #100 $1 $1 #15 1 2 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 , #100 $1 $1 #15 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #15 3 4 , #100 $1 $1 #15 1 2 , #13 5 , #13 7 , #100 $1 $1 #15 1 2 , #13 6 , #13 8 ,
+// , #101 $0 $0 #10 1 2 , #101 $0 $0 #10 1 3 , @ , #101 $0 $0 #10 1 2 , #101 $0 $0 #10 2 3 ,
+
+
+//rule : , #100 $1 $1 #10 1 2 , #100 $1 $1 #10 3 4 , #13 5 , #13 6 , #100 $1 $1 #10 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #10 3 4 , #100 $1 $1 #10 1 2 , #13 5 , #13 7 , #100 $1 $1 #10 1 2 , #13 6 , #13 8 ,

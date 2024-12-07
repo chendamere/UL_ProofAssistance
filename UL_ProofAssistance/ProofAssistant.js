@@ -54,6 +54,7 @@ class ProofAssistant {
                 return 1    
             }
             else{
+                // this.PrintAllRules()
                 return -1
             }
         }
@@ -120,18 +121,30 @@ class ProofAssistant {
         let lbr = this.getFirstBr(leftexp)
         let rbr = this.getFirstBr(rightexp)
 
-        if(lbr.index != -1 && rbr.index != -1 && lbr.br =='#100' && rbr.br =='#101'){
+        if(lbr.index != -1 && rbr.index != -1){
             let [ltop, lbot] = this.getTopBot(leftexp, lbr)
             let [rtop, rbot] = this.getTopBot(rightexp, rbr)
-
             let combinedtop = this.CombineExp(ltop,rtop)
             let combinedbot = this.CombineExp(lbot,rbot)
             let tempbr = leftexp[lbr.index]
-            tempbr.Opparam[0] = '#102'
+            if(lbr.br =='#101' && rbr.br =='#102'){
+                
+                tempbr.Opparam[0] = '#100'
+
+            }else if(lbr.br == rbr.br){
+                if(lbr.br == '#101'){
+                    tempbr.Opparam[0] = '#101'                    
+                }else if(lbr.br == '#102'){
+                    tempbr.Opparam[0] = '#102'                    
+                }else if(lbr.br == '#100'){
+                    tempbr.Opparam[0] = '#100'                    
+                }
+            }
             ret = leftexp.slice(0, lbr.index).concat([tempbr]).concat(combinedtop).concat(combinedbot)
             ret = this.updateBr(leftexp, combinedtop, combinedbot, lbr)
             ret = ret.concat(rightexp.slice(this.getBranchEnd(rightexp, rbr), rightexp.length))
-        }else{
+        }
+        else{
             ret = leftexp.concat(rightexp)
         }
         return ret 
@@ -145,66 +158,87 @@ class ProofAssistant {
     }
     getAlltrimedback(exp){
         let allexps = []
-        let i = 0 
+        let i = 0
         while(i < exp.length){
-            let subexp = [].concat(exp.slice(0,i+1))
-            if(this.isBranch(exp[i]) && exp[i].Opparam[0] != '#101'){
-                let br = this.getFirstBr(exp.slice(i,exp.length))
-                br.index = i
-                let temp = this.cloneExp(subexp)
-                temp[i].Opparam[0] = '#100'
-                let [top, bot] = this.getTopBot(exp,br)
+            let begin = this.cloneExp(exp.slice(0,i+1))
+            let br = this.getFirstBr(exp)
+            let temp = this.cloneExp(exp.slice(i,exp.length))
+            if(br.index != -1 && i == br.index){
+                temp = this.cloneExp(exp.slice(i,this.getBranchEnd(exp, br)))
+                let br2 = this.getFirstBr(temp)
+
+                if(br2.br == '#100'){
+                    temp[br2.index].Opparam[0] = '#101'
+                }
+
+                let [top, bot] = this.getTopBot(temp,br2)
+
                 let botlist = [[]].concat(this.getAlltrimedback(bot))
                 let toplist = [[]].concat(this.getAlltrimedback(top))
 
                 for(const topexp of toplist){
                     for(const botexp of botlist){
-                        const subexp2 = this.updateBr(this.cloneExp(temp), topexp, botexp, br)
+                        const subexp2 = begin.slice(0, begin.length-1).concat(this.updateBr(this.cloneExp(temp), topexp, botexp, br2))
+
                         allexps.push(subexp2)
                     }
                 }
-                if(br.br == '#102'){
-                    let brexp = this.updateBr(this.cloneExp(subexp), toplist[toplist.length-1], botlist[botlist.length-1], br)
+                if(br.br == '#100'){
+                    temp[br2.index].Opparam[0] = '#100'
+                    temp[br2.index].operator = exp[br2.index].operator
+                    temp[br2.index].operands = exp[br2.index].operands
+                    let brexp = begin.slice(0, begin.length-1).concat(this.updateBr(this.cloneExp(temp), toplist[toplist.length-1], botlist[botlist.length-1], br2))
                     allexps.push(brexp)
+                }else{
+                    allexps.push(this.cloneExp(exp.slice(0 ,this.getBranchEnd(exp, br))))
                 }
                 i = this.getBranchEnd(exp, br)
-                continue;
 
             }else{
-                allexps.push(subexp)
+                allexps.push(begin)
+                i+= 1
             }
-            i+= 1
         }
         return allexps
     }
 
     getAlltrimedfront(exp){
         let allexps = []
-        let i = exp.length-1 
+        let i = exp.length-1
         while(0 <= i){
-            let subexp = [].concat(this.cloneExp(exp).slice(i,exp.length))
-            let br = this.getLastBr(exp.slice(0,i))
+            let subexp = this.cloneExp(exp.slice(i,exp.length))
+            let br = this.getLastBr(exp)
             if(br.index != -1 && i < this.getBranchEnd(exp,br) && i >= br.index){
-                let t = this.cloneExp([exp[br.index]])
-                let br2 = this.getFirstBr(t)
-                t = this.updateBr(t,[],[],br2)
+                let temp = this.cloneExp([exp[br.index]])
+                let br2 = this.getFirstBr(temp)
+                temp = this.updateBr(temp,[],[],br2)
 
-                t[br2.index].Opparam[0] = '#101'
+                if(br.br != '#101'){
+                    temp[br2.index].Opparam[0] = '#102'
+                    temp[br2.index].operator = ''
+                    temp[br2.index].operands = []
+                }else{
+                    temp[br2.index].Opparam[0] = '#101'
+                }
 
                 let [top, bot] = this.getTopBot(exp,br)
                 let [toplist, botlist] = [[[]].concat(this.getAlltrimedfront(top)), [[]].concat(this.getAlltrimedfront(bot))] 
                 for(const topexp of toplist){
                     for(const botexp of botlist){
-                        let subexp2 = this.updateBr(this.cloneExp(t), topexp, botexp, br2).concat(subexp.slice(1,subexp.length))
+                        let subexp2 = this.updateBr(this.cloneExp(temp), topexp, botexp, br2).concat(subexp.slice(1,subexp.length))
                         allexps.push(subexp2)
                     }
                 }
-                if(br.br == '#102'){
-                    t[br2.index].Opparam[0] = '#102'
-                    let brexp = this.updateBr(this.cloneExp(t), toplist[toplist.length-1], botlist[botlist.length-1], br2).concat(subexp.slice(1,subexp.length))
+                if(br.br == '#100'){
+                    temp[br2.index].Opparam[0] = '#100'
+                    temp[br2.index].operator = exp[br.index].operator
+                    temp[br2.index].operands = exp[br.index].operands
+                    let brexp = this.updateBr(this.cloneExp(temp), toplist[toplist.length-1], botlist[botlist.length-1], br2).concat(subexp.slice(1,subexp.length))
                     allexps.push(brexp)
+                }else{
+                    allexps.push(this.cloneExp(exp).slice(br.index,exp.length))
                 }
-                i = br.index 
+                i = br.index
             }else{
                 allexps.push(subexp)
             }
@@ -218,12 +252,8 @@ class ProofAssistant {
         allexps.push([[],[], exp])
         while(i < exp.length){
             let beginexp = exp.slice(0, i)            
-            let trimbacklist = this.getAlltrimedback(exp.slice(i, exp.length))
-            let edgeb = !trimbacklist[trimbacklist.length-1] ? [] : trimbacklist[trimbacklist.length-1]
-            trimbacklist = trimbacklist.slice(0,trimbacklist.length-1)
-
-            let trimfrontlist= this.getAlltrimedfront(exp.slice(i, exp.length))
-            trimfrontlist = trimfrontlist.slice(0,trimfrontlist.length-1)
+            let trimbacklist = [[]].concat(this.getAlltrimedback(exp.slice(i, exp.length)))
+            let trimfrontlist= [[]].concat(this.getAlltrimedfront(exp.slice(i, exp.length)))
 
             let j = 0
             let ret = []
@@ -231,7 +261,7 @@ class ProofAssistant {
                 ret.push([beginexp, trimbacklist[j], trimfrontlist[trimbacklist.length - j -1]])
                 j += 1
             }
-            ret.push([beginexp, edgeb,[]])
+
             if(this.isBranch(exp[i])){
                 let br = this.getFirstBr(exp)
                 i = this.getBranchEnd(exp,br)
@@ -242,22 +272,15 @@ class ProofAssistant {
         }
         allexps.push([exp,[],[]])
 
-        i = exp.length+1
-        while(i > 0){
+        i = exp.length
+        while(i >= 0){
             let br = this.getLastBr(exp)
-            if(br.index != -1 && i > br.index && i <= this.getBranchEnd(exp, br)){
-                i = br.index
-            }else{
-                i -= 1
-            }
+
             let endexp = exp.slice(i, exp.length)
 
-            let trimfrontlist = this.getAlltrimedfront(exp.slice(0, i))
-            let edgef = !trimfrontlist[trimfrontlist.length-1] ? []: trimfrontlist[trimfrontlist.length-1] 
-            trimfrontlist = trimfrontlist.slice(0,trimfrontlist.length-1)
+            let trimfrontlist = [[]].concat(this.getAlltrimedfront(exp.slice(0, i)))
 
-            let trimbacklist = this.getAlltrimedback(exp.slice(0, i))
-            trimbacklist = trimbacklist.slice(0,trimbacklist.length-1)
+            let trimbacklist = [[]].concat(this.getAlltrimedback(exp.slice(0, i)))
 
             let ret = []
             let j = 0
@@ -265,83 +288,225 @@ class ProofAssistant {
                 ret.push([trimbacklist[trimbacklist.length - j -1], trimfrontlist[j], endexp])
                 j += 1
             }
-            ret.push([[], edgef,endexp])
+            if(br.index != -1 && i > br.index && i <= this.getBranchEnd(exp, br)){
+                i = br.index-1
+            }else{
+                i -= 1
+            }
             allexps = allexps.concat(ret)
         }
         return allexps 
     }
 
+    
+
+    getStepsFromMin(exps){
+        let i = this.getmax(exps)
+        for(const exp of exps){
+            if(exp.operands){
+                for(const opr of exp.operands){
+                    if(opr){
+                        // console.log('here', parseInt(opr[0]))
+
+                        if(parseInt(opr[0]) < i){
+                            i = parseInt(opr[0])
+                        }
+                    }
+                }
+            }
+        }
+        return i
+    }
+    checkCombine(tar, begin, repl, end){
+        let trepl = this.cloneExp(repl)
+        let limit = this.getmax(tar)
+        let j = 0
+        let combinedexp = this.cloneExp(this.CombineExp(this.CombineExp(begin, trepl),end))
+        if(this.Same(combinedexp,tar)){
+            return true 
+        }
+        while(j < limit){
+            if(this.Same(combinedexp,tar)){
+                return true 
+            }
+            // if(this.ExpToString(repl).includes('#3') && this.ExpToString(repl).includes('#4')){
+            //     console.log('combine: ', this.ExpToString(combinedexp))
+            // }
+            let br = this.getLastBr(begin)
+            if(br.index != -1 && this.getBranchEnd(begin, br) >= begin.length){
+                
+                combinedexp = this.cloneExp(this.CombineExp(this.CombineExp(begin, trepl),end))
+                combinedexp[br.index].Opparam[1] = '$' + trepl.length.toString()
+                if(this.Same(combinedexp,tar)){
+                    return true 
+                }
+                combinedexp = this.cloneExp(this.CombineExp(this.CombineExp(begin, trepl),end))
+                combinedexp[br.index].Opparam[2] = '$' + trepl.length.toString()
+                if(this.Same(combinedexp,tar)){
+                    return true 
+                }
+            }
+            // console.log('trepl: ', this.ExpToString(trepl))
+        
+            trepl = this.cloneExp(this.incOperands(trepl))
+            combinedexp = this.cloneExp(this.CombineExp(this.CombineExp(begin, trepl),end))
+            j += 1
+        }
+        // console.log('combined: ', this.ExpToString(combinedexp))
+        
+
+            
+
+        return false 
+    }
+
+    ruleInBranch(rl, rr, sub){
+        // let rule = this.genRule('!' + this.ExpToString(rl) + '@' + this.ExpToString(rr))
+        let s = this.cloneExp(sub)        
+        let ret = []
+        let br = this.getFirstBr(s)
+        if(br.index != -1 && br.index == 0){
+            let [top,bot] = this.getTopBot(sub, br)
+            let trule = this.ruleInBranch(rl, rr, top)
+            let brule = this.ruleInBranch(rl, rr, bot)
+            let s2 = this.cloneExp([s[br.index]])
+            let br2 = this.getFirstBr(s2)
+            if(trule.length != 0){
+                ret = ret.concat(this.updateBr(s2 , trule, brule ,br2))
+            }
+            else if (brule.length != 0){
+                ret = ret.concat(this.updateBr(s2 , trule, brule ,br2))
+            }
+        }
+        let rulel = this.genRule('!' + this.ExpToString(rl) + '@' + this.ExpToString(rl))
+        let ruler = this.genRule('!' + this.ExpToString(rr) + '@' + this.ExpToString(rr))
+        let srcc = this.genRule('!' + this.ExpToString(s) + '@' + this.ExpToString(s))
+        // console.log(this.checkcv(x, x2), this.RuleToString(x), this.RuleToString(x2))
+        let check = this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(s))
+        if(this.Same(check.leftexps, check.rightexps)){
+            // console.log('check: ', this.RuleToString(check))
+            return this.cloneExp(rr)
+        }
+        if(this.hasCV(rr) && this.checkcv(srcc, rulel)){
+            // console.log('check: ', this.RuleToString(check))
+            let cvtable = this.checkcv(srcc, ruler, true)
+            // console.log(cvtable, ruler)
+            let subrule = this.replacecv(cvtable, rr)
+            // console.log(this.RuleToString(subrule))
+            return this.cloneExp(subrule.rightexps)
+
+            // return this.checkcv(srcc, rule, true)
+        }
+        return ret
+    }
+    hasCV(exps){
+        for(const a of exps){
+            if(this.parser.cv.includes(a.operator)) return true
+        }
+        return false
+    }
+
+    getOperandSub(exp1, exp2){
+        let table = {}
+        let i = 0
+        if(exp1.length != exp2.length) return table
+        let check = this.Operands_normalize(this.genRule('!'+this.ExpToString(exp1)+ '@' + this.ExpToString(exp2)))
+        console.log('check: ', this.RuleToString(check))
+        if(!this.Same(check.leftexps,check.rightexps)) return table
+        while(i < exp1.length){
+            let j = 0
+            if(exp1[i].operands){
+                while( j < exp1[i].operands.length){
+                    if(!check[exp1[i].operands[j][0]]){
+                        table[exp1[i].operands[j][0]] = exp2[i].operands[j][0]
+                    }
+                    j+=1
+                }
+            }
+            i+=1
+        }
+    }
+    flipKeyandValue(table){
+        let rettable = {}
+        for(const [key, value] of Object.entries(table)){
+            rettable[value] = parseInt(key)
+        }
+        return rettable 
+    }
+
+    MatchRule(rl, rr, begin, sub, end, tar){
+        // let r1 = this.Operands_normalize(this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(rr)))
+
+        let oprtable = {}
+        let tsub = this.Operands_normalize_exps(this.cloneExp(sub),oprtable)[0]
+        oprtable = this.flipKeyandValue(oprtable)
+
+        let r = this.Operands_normalize(this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(rr)))
+        let trl = r.leftexps
+        let trr = r.rightexps
+
+        let rrl = this.genRule('!'+this.ExpToString(trl) + '@' + this.ExpToString(trl))
+        let rrr = this.genRule('!'+this.ExpToString(trr) + '@' + this.ExpToString(trr))
+        let rtsub = this.genRule('!'+this.ExpToString(tsub) + '@' + this.ExpToString(tsub))        
+        if(this.hasCV(trl) || this.hasCV(trr)){
+            if(this.checkcv(rtsub,rrl)){                        
+                let cvtable = this.checkcv(rtsub, rrl, true)
+                trr = this.replacecv(cvtable,rrr).rightexps
+                trl = this.replacecv(cvtable,rrl).leftexps
+            }
+            else if(this.checkcv(rtsub,rrr)){
+                let cvtable = this.checkcv(rtsub, rrr, true)
+                trr = this.replacecv(cvtable,rrr).rightexps
+                trl = this.replacecv(cvtable,rrl).leftexps
+            }
+        }
+
+        if(this.ExpToString(rl).includes('#11')&&this.ExpToString(rl).includes('#13')&&this.ExpToString(tsub).includes('#11')){
+            console.log('tsub', this.ExpToString(tsub))
+            console.log('rl', this.ExpToString(rl),'rr', this.ExpToString(rr))
+        }
+
+        if(this.Same(trl, tsub)){
+            let ttrr = trr
+            ttrr = this.Operands_normalize_exps(trr, oprtable)[0]
+            if(this.checkCombine(tar, begin, ttrr, end)){
+                return true 
+            }
+        }
+
+        if(this.Same(trr, tsub)){
+            let ttrl = trl
+            ttrl = this.Operands_normalize_exps(trl, oprtable)[0]
+            if(this.checkCombine(tar, begin, ttrl, end)){
+                return true 
+            }
+        }
+
+        let lbexp = this.cloneExp(this.ruleInBranch(trl, trr, tsub))
+        let rbexp = this.cloneExp(this.ruleInBranch(trr, trl, tsub))
+
+        if(lbexp.length != 0 && this.checkCombine(tar, begin, lbexp, end)){
+            return true 
+        }
+        if(rbexp.length != 0 &&this.checkCombine(tar, begin, rbexp, end)){
+            return true 
+        }
+        return false 
+    }
     MatchandCheck(left, right){
-        // console.log(this.ExpToString(left))
-        // console.log(this.ExpToString(right))
+
         let subexps = this.getAllSubExps(left)
-        // for(const a of subexps){
-        //     console.log('leftlist: ', this.ExpToString(a[1]))
-        // }
-
-
-        // console.log('leftlist: ', subexps)
         
         for(const p of subexps){
             let begin = this.cloneExp(p[0])
             let sub = this.cloneExp(p[1])
             let end = this.cloneExp(p[2])
             for(const r of this.getAllRules()){
-                // console.log(this.RuleToString(r))
-                
-                let rl = this.cloneExp(r.leftexps)
-                let rr = this.cloneExp(r.rightexps) 
-                // console.log(this.RuleToString(r))
-
-                let rlrule = this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(sub))
-                // if(rlrule.leftexps[0].operator == '#4' && rlrule.rightexps[0].operator == '#4'){
-                //     console.log('!', this.RuleToString(rlrule))
-                // }
-                // console.log('rlrule: ',this.RuleToString(rlrule))
-
-                let normalizedrl = this.Operands_normalize(rlrule)
-
-                if(this.Same(normalizedrl.leftexps, normalizedrl.rightexps)){
-
-                    let temprr = rr 
-                    let checkCombined = this.CombineExp(this.CombineExp(begin, temprr),end)    
-                    // if(rl.length == 1 && sub.length == 1) {
-                    //     // console.log('!!', this.ExpToString(begin),this.ExpToString(temprr),this.ExpToString(end))
-                    //     // console.log('!', this.RuleToString(normalizedrl))
-                    // }                
-                    let limit = this.getmax(checkCombined)
-                    let i = 0
-                    do{
-                        // console.log('combined1:', this.ExpToString(checkCombined), limit)
-                        if(this.Same(checkCombined,right)){
-                            return true 
-                        }
-                        temprr = this.incOperands(temprr)
-                        i += 1
-                    }while(i <= limit)
-                }
-
-                let rrrule = this.genRule('!'+this.ExpToString(rr)+'@'+this.ExpToString(sub))
-                // if(rrrule.leftexps[0].operator == '#4' && rrrule.rightexps[0].operator == '#4'){
-                //     console.log('!', this.RuleToString(rrrule))
-                // }
-
-                let normalizedrr = this.Operands_normalize(rrrule)
-                if(this.Same(normalizedrr.leftexps, normalizedrr.rightexps)){
-                    let temprl = rl 
-                    let checkCombined = this.CombineExp(this.CombineExp(begin, temprl),end)
-                    let limit = this.getmax(checkCombined)
-                    let i = 0 
-                    do{
-                        // console.log('rule: ', this.RuleToString(r), limit)
-                        // console.log('combined2:', this.ExpToString(checkCombined))
-                        if(this.Same(checkCombined,right)){
-                            return true 
-                        }
-                        temprl = this.incOperands(temprl)
-                        i += 1
-                    }while(i <= limit)
-                }
+                let [rl, rr] = [this.cloneExp(r.leftexps), this.cloneExp(r.rightexps)]
+                let com1 = this.MatchRule(rl, rr, begin, sub, end, right)
+                if(com1) return true 
+                let com2 = this.MatchRule(rr, rl, begin, sub, end, right)
+                if(com2) return true
             }
         }
         return false 
@@ -380,7 +545,7 @@ class ProofAssistant {
     getBranchEnd(exp, br){
         if(br.index == -1) return 0  
         let i = br.index
-        let end = br.index +1
+        let end = br.index + 1
         while(i < end){
             if(exp[i]){
                 if(exp[i].Opparam){
@@ -428,14 +593,15 @@ class ProofAssistant {
         return [top,bot]
     }
     updateBr(texp, topexp, botexp, br){
-        let exp = texp.slice(0,texp.length)
+        let exp = this.cloneExp(texp.slice(0,texp.length))
         if(br.index == -1) return exp
-        exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp)
-        exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp)
         let [top, bot] = this.getTopBot(exp, br)
         let range = top.length + bot.length
         let end = exp.slice(br.index + range + 1, exp.length)
+
         exp = exp.slice(0, br.index+1).concat(topexp).concat(botexp).concat(end)
+        exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp)
+        exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp)
         return exp
     }
 
@@ -488,13 +654,17 @@ class ProofAssistant {
     //same thing as maximizing the length of left and right 
     getFirstBr(exp){
         let br = {index : -1, next : {}, prev:-1, bot:exp.length, top:exp.length, br: ''}
+        // if(exp.length == 0) return br
+
         let ti = 0
         // console.log('leftbr: ', br)
         while(ti < exp.length) {
-            if(exp[ti].Opparam){
-                if(exp[ti].Opparam[0]){
-                    if(this.BrOperators.includes(exp[ti].Opparam[0])){
-                        return {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+            if(exp[ti]){
+                if(exp[ti].Opparam){
+                    if(exp[ti].Opparam[0]){
+                        if(this.BrOperators.includes(exp[ti].Opparam[0])){
+                            return {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                        }
                     }
                 }
             }
@@ -551,6 +721,7 @@ class ProofAssistant {
     Operands_normalize(rule) {
         let operands_table = {}
         let leftexps = this.Operands_normalize_exps(rule.leftexps, operands_table)[0]
+        // console.log(operands_table)
         let rightexps = this.Operands_normalize_exps(rule.rightexps, operands_table)[0]
 
         return {leftexps: leftexps, rightexps:rightexps}
@@ -572,11 +743,11 @@ class ProofAssistant {
                 if(ret_exp.operands.length > 0){
                     let i = 0
                     while(i < ret_exp.operands.length){
+                        // console.log('!', ret_exp)
                         let operand = ret_exp.operands[i]
                         if(operand){
-                            if(temp_table[operand] == undefined){
+                            if(!temp_table[operand]){
                                 temp_table[operand] = offset 
-    
                                 offset += 1
                             }
                             ret_exp.operands[i] = String(temp_table[operand])
@@ -676,61 +847,54 @@ class ProofAssistant {
         }
         return tcvtable
     }
+
+    replacecvexp(cvtable, expsrc){
+        let exps = this.cloneExp(expsrc)
+        for(const exp of exps){
+            if(exp.operator == this.parser.cv){
+                let t = cvtable[exp.operands[0]].split(' ')
+                exp.operator = t[0]
+                exp.operands = t.slice(1,t.length)
+            }
+        }
+        return exps
+    }
     replacecv(cvtable, rule){
         let retr = this.genRule('!'+this.ExpToString(rule.leftexps) + '@' + this.ExpToString(rule.rightexps))
-        for(const exp of retr.leftexps){
-            if(exp.operator == this.parser.cv){
-                let t = cvtable[exp.operands[0]].split(' ')
-                exp.operator = t[0]
-                exp.operands = t.slice(1,t.length)
-            }
-        }
-        for(const exp of retr.rightexps){
-            if(exp.operator == this.parser.cv){
-                let t = cvtable[exp.operands[0]].split(' ')
-                exp.operator = t[0]
-                exp.operands = t.slice(1,t.length)
-            }
-        }
+        retr.leftexps = this.replacecvexp(cvtable, retr.leftexps)
+        retr.rightexps = this.replacecvexp(cvtable, retr.rightexps)
         return retr 
     }
-    checkcv(srcr, tarr){
-        let sleft = srcr.leftexps
-        let sright = srcr.rightexps
-        let tleft = tarr.leftexps 
-        let tright = tarr.rightexps 
+    checkcv(srcr, tarr, getreplaced = false){
+        let [sleft,sright] = [this.cloneExp(srcr.leftexps), this.cloneExp(srcr.rightexps)]
+        let [tleft, tright] = [this.cloneExp(tarr.leftexps), this.cloneExp(tarr.rightexps)]
         let con = sleft.concat(sright).concat(tleft).concat(tright)
         let cvtable = {}
         cvtable = this.getcv(cvtable, con)
-
         let r = sleft.concat(sright)
         let optlist = this.operationlist(r)
-
         let perm = this.genPermutation(Object.keys(cvtable).length, optlist.length)
 
         for(let i = 0 ; i < perm.length ; i ++){
             let tcvtable = this.assigncv(cvtable, optlist, perm, i)
-
             let replacedr = this.replacecv(tcvtable, tarr)
-            
-            if(this.Same(sleft, replacedr.leftexps) ) {
-                if(this.Same(sright, replacedr.rightexps)){
+            if(this.Same(this.cloneExp(sleft), this.cloneExp(replacedr.leftexps))||this.Same(this.cloneExp(sright), this.cloneExp(replacedr.leftexps)) &&
+                (this.Same(this.cloneExp(sright), this.cloneExp(replacedr.rightexps))||this.Same(this.cloneExp(sleft), this.cloneExp(replacedr.rightexps)))) {
+                    // console.log('replacedr.leftexps: ', this.ExpToString(replacedr.leftexps),'replacedr.rightexps: ', this.ExpToString(replacedr.rightexps))
+                    // console.log('sleft: ', this.ExpToString(sleft),'sright: ', this.ExpToString(sright))
+                    if(getreplaced){
+                        return tcvtable
+                    }
                     return true 
-                }
-            }
-            if(this.Same(sright, replacedr.leftexps) ) {
-                if(this.Same(sleft, replacedr.rightexps)){
-                    return true 
-                }
             }
             if(this.OperatorEquivalence(srcr,replacedr) && this.OperandEquivalence(srcr,replacedr)){
+                if(getreplaced){
+                    return tcvtable
+                }
                 return true
             }
         }
-
         return false
-        //
-
     }
 
     //--Equivalence--
