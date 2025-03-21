@@ -12,8 +12,8 @@ class Parser {
     }
 
 
-    Parse(expression) {
-        const tokens = expression.split(',').filter(token => token !== ' ');
+    Parse(statement) {
+        const tokens = statement.split(',').filter(token => token !== ' ');
         let exps = []
         let rule = {leftexps:[], rightexps:[]}
 
@@ -62,7 +62,13 @@ class Parser {
                     }                 
                 }
                 else if(!isNaN(exp[i])){
-                    operands.push(exp[i])
+                    let opr = ''
+                    while(exp[i] && exp[i] != ' '){
+                        opr += exp[i]
+                        i+=1
+                    }
+                    operands.push(opr)
+                    continue
                 }
                 i += 1
             }

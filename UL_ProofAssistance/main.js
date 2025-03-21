@@ -1,28 +1,15 @@
 
-
-// focus on what to manipulate
-
-// const net = new brain.NeuralNetwork();
-
-// net.train([
-//   { input: { r: 0.03, g: 0.7, b: 0.5 }, output: { black: 1 } },
-//   { input: { r: 0.16, g: 0.09, b: 0.2 }, output: { white: 1 } },
-//   { input: { r: 0.5, g: 0.5, b: 1.0 }, output: { green: 1 } },
-// ]);
-
-// const output = net.run({ r: 1, g: 0.4, b: 0 }); // { white: 0.99, black: 0.002 }
-
-// console.log(output)
-
 import fs from 'fs'
 
 import ProofAssistant from "./ProofAssistant.js";
-import LatexParser from "./LatexParser.js";
-import ProofStrategy from './ProofStrategy.js';
+import LatexParser from  "./LatexParser.js"
+import {subexptest, subexpbranchtest} from "./tests.js"
+import ProofStrategy from  './ProofStrategy.js';
 
+
+//Load axioms and get all beginning expression in theorems
 let latexparser = new LatexParser();
 let allrules = [];
-
 let tstatements = []
 fs.readdirSync('./axiom/').forEach(file => {
     const chapter = latexparser.ParseFile( './axiom/', fs.readFileSync, file, false)
@@ -54,42 +41,53 @@ fs.readdirSync('./theorems/').forEach(file => {
 })
 
 let pf = new ProofAssistant(allrules, latexparser, [])
+let ps = new ProofStrategy(pf, tstatements.slice(0,1), allexps)
 // pf.PrintAllRules()
+ps.Init()
 
-let rule1 = pf.genRule('!  , #100 $1 $2 #15 1 2 , #11 , #11 , #11 ,   @ , #100 $1 $1 #15 1 2 , #11 , #11 , ') 
+let check = latexparser.Parse('!, #4 1 , #101 $2 $2 #10 2 3 , #3 1 , #4 1 , #3 1 , #4 1 , @   , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , ')
+let check2 = latexparser.Parse('!, #101 $1 $1 #10 2 3 , #3 1 , #3 1 , @   ,#3 1 , #101 $0 $0 #10 2 3 ,')
+// let check3 = latexparser.Parse('! , #3 1 , #3 1 , @   , #3 1 , #3 1 ,#4 1 , #4 1 ,  ')
+// let check4 = latexparser.Parse('!, #101 $1 $1 #10 2 3 , #3 1 , #3 1 , @   , #4 1 , #3 1 , #101 $1 $1 #10 2 3 , #4 1 , #4 1 , ')
 
-// console.log(pf.RuleToString(pf.Operands_normalize(rule2)))
-// console.log(pf.checkcv(rule22, rule2))
-console.log(pf.MatchandCheck(rule1.leftexps, rule1.rightexps))
-// console.log()
+// let [sub1, sub2] = pf.getsub(check.leftexps)
 
-// let table = {}
-// let x = pf.Operands_normalize_exps(rule1.leftexps, table)
-// console.log(pf.ExpToString(x[0]))
-// let x1 = pf.Operands_normalize_exps(rule2.leftexps, table)
-// let x2 = pf.Operands_normalize_exps(rule2.rightexps, table)
-// console.log(pf.ExpToString(x[0]), table )
-// console.log(pf.flipKeyandValue(table))
-// console.log(pf.ExpToString(x1[0]), table )
-// console.log(pf.ExpToString(x2[0]), table )
-
-// console.log(pf.getOperandSub(rule2.leftexps, rule2.rightexps))
-
-// console.log(pf.ruleInBranch(rule6.leftexps,rule6.rightexps,rule5.leftexps))
-// let r1 = pf.genRule('!,@,'+pf.ExpToString(rule2.leftexps))
-// let s2 = pf.genRule('!,@,'+pf.ExpToString(rule2.rightexps))
-// console.log(pf.checkcv(r1,s2))
-// console.log(pf.ruleInBranch(rule2.leftexps, rule2.rightexps))
-// for (const x of pf.getAllSubExps(rule7.leftexps)){
-//     console.log(pf.ExpToString(x[0]),' --|',pf.ExpToString(x[1]),'|-- ',pf.ExpToString(x[2]))
+// sub1 = pf.addEmpty(sub1.concat(sub2))
+// for(const x of sub1){
+//     console.log('!', x[1], pf.ExpToString(x[0]))
 // }
 
-// let ps = new ProofStrategy(pf, tstatements, allexps)
-// ps.Init()
-// , #100 $1 $1 #10 1 2 , #100 $1 $1 #10 3 4 , #13 5 , #13 6 , #100 $1 $1 #10 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #10 3 4 , #100 $1 $1 #10 1 2 , #13 5 , #13 7 , #100 $1 $1 #10 1 2 , #13 6 , #13 8 ,
 
-// , #100 $1 $1 #15 1 2 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 , #100 $1 $1 #15 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #15 3 4 , #100 $1 $1 #15 1 2 , #13 5 , #13 7 , #100 $1 $1 #15 1 2 , #13 6 , #13 8 ,
-// , #101 $0 $0 #10 1 2 , #101 $0 $0 #10 1 3 , @ , #101 $0 $0 #10 1 2 , #101 $0 $0 #10 2 3 ,
+// let ret = pf.Proving(pf.ExpToString(check.leftexps), pf.ExpToString(check.rightexps), true)
+
+// console.log(ret)
+
+// let rest = pf.Check(check2.rightexps, [check2.leftexps,1], check.leftexps )
 
 
-//rule : , #100 $1 $1 #10 1 2 , #100 $1 $1 #10 3 4 , #13 5 , #13 6 , #100 $1 $1 #10 3 4 , #13 7 , #13 8 , @ , #100 $1 $1 #10 3 4 , #100 $1 $1 #10 1 2 , #13 5 , #13 7 , #100 $1 $1 #10 1 2 , #13 6 , #13 8 ,
+// for(const x of rest){
+//     console.log(pf.ExpToString(x))
+// }
+// console.log(pf.ExpToString(rest))
+// console.log(latexparser.Parse('!,@,'))
+
+// for(const testexp of subexpbranchtest){
+//     let src = latexparser.Parse(testexp).leftexps
+//     let [t,s] = pf.getsub(src)
+//     console.log('----- Start -----')
+
+//     console.log('test exp: ', pf.ExpToString(src))
+//     //main 
+//     for(const x of t){
+//         console.log('!', x[1], pf.ExpToString(x[0]))
+//     }
+//     console.log('-----------------')
+
+//     //sub
+//     for(const x of s){
+//         console.log('!', x[1], pf.ExpToString(x[0]))
+//     }
+//     console.log('----- End -------')
+//     // let allnext = pf.MatchandCheck(src, [])
+
+// }
