@@ -94,7 +94,8 @@ export default class ProofStrategy {
                 return this.pf.ExpToString(v.rightexps)
             }
         }
-        return false 
+        // return this.pf.Proving(start, end, debug) == 1 
+        return false
     }
     proveExps(exps, start, end, debug=false) { 
         if(exps.length == 0){return -1}

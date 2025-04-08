@@ -334,41 +334,6 @@ class ProofAssistant {
         return [ret, sublist]
     }
 
-    // ruleInBranch(rl, rr, sub){
-    //     let s = this.cloneExp(sub)        
-    //     let ret = []
-    //     let br = this.getFirstBr(s)
-    //     if(br.index != -1 && br.index == 0){
-    //         let [top,bot] = this.getTopBot(sub, br)
-    //         let trule = this.ruleInBranch(rl, rr, top)
-    //         let brule = this.ruleInBranch(rl, rr, bot)
-    //         let s2 = this.cloneExp([s[br.index]])
-    //         let br2 = this.getFirstBr(s2)
-    //         if(trule.length != 0){
-    //             ret = ret.concat(this.updateBr(s2 , trule, brule ,br2))
-    //         }
-    //         else if (brule.length != 0){
-    //             ret = ret.concat(this.updateBr(s2 , trule, brule ,br2))
-    //         }
-    //     }
-    //     let rulel = this.genRule('!' + this.ExpToString(rl) + '@' + this.ExpToString(rl))
-    //     let ruler = this.genRule('!' + this.ExpToString(rr) + '@' + this.ExpToString(rr))
-    //     let srcc = this.genRule('!' + this.ExpToString(s) + '@' + this.ExpToString(s))
-    //     let check = this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(s))
-    //     if(this.Same(check.leftexps, check.rightexps)){
-    //         return this.cloneExp(rr)
-    //     }
-
-    //     if(this.checkcv(srcc, rulel)){
-    //         let subrule = ruler 
-    //         if(this.hasCV(rr)){
-    //             let cvtable = this.checkcv(srcc, ruler, true)
-    //             subrule = this.replacecv(cvtable, rr)
-    //         }
-    //         return this.cloneExp(subrule.rightexps)
-    //     }
-    //     return ret
-    // }
     hasCV(exps){
         for(const a of exps){
             if(this.parser.cv == a.operator) return true
@@ -385,74 +350,113 @@ class ProofAssistant {
     }
 
     MatchandCheck(src, tar){
-        let allnextexps = []
         let [subexps, subexps2] = this.getsub(src)
         subexps = subexps.concat(subexps2)
         subexps = this.addEmpty(subexps)
         subexps = this.sort_subexp(subexps)
         for(const sub of subexps){
-            // if(this.ExpToString(sub[0]).includes(', #101 $1 $1 #10 2 3 , #3 1 , #3 1 ,')) conso le.log('!', this.ExpToString(sub[0]))
             for(const rule of this.allrules){
-                if(this.CheckOperandLoop(rule.leftexps, rule.rightexps, sub, src, tar)) return true
+                if(this.CheckFromRules(rule.leftexps, rule.rightexps, sub, src, tar)) return true
             }
         }
         return false
     }
 
-    CheckOperandLoop(rl, rr, sub, src, tar){
-        let tsrc = src 
-        let i = 0
-        let max = this.getmax(this.cloneExp(src))
-        //try to matchsub operands rl or rr 
 
-        let trl = this.Operands_normalize(this.genRule('!'+this.ExpToString(sub[0])+'@'+this.ExpToString(rl))).rightexps
-        let trr = this.Operands_normalize(this.genRule('!'+this.ExpToString(sub[0])+'@'+this.ExpToString(rr))).rightexps
-        if(this.ExpToString(trl).includes('#4') && this.ExpToString(sub[0]).includes('#4 3')){
-            console.log('sub: ', this.ExpToString(sub[0]))
-            console.log('rl: ', this.ExpToString(rl), 'rr: ', this.ExpToString(rr))
-            console.log('trl: ', this.ExpToString(trl), 'trr: ', this.ExpToString(trr))
-            console.log()
+    // sub might not be normalized
+    // ex.  , #4 3 ,#7 1 2,
+    // rules are normalized.
 
+    // left normalization vs right normalization
+    // ex. , #4 1 , #4 2, -> ,#4 2, #4 1,
+    // ex. , #4 2 , #4 1 -> ,#4 1, #4 2,
+    // is normalization semantically correct?
+    // yes.
+
+    //return a list of all independent operands in the expression
+    // ex. , #7 1 2, #4 1, #101 $1 $1 #10 1 2, #4 2, #4 3 ,  --> [1, 2, 3]
+
+    GetAllVariance(lst, choice=lst.length){
+        let ret = []
+        if(choice == 0){
+            return [ret]
         }
-        // console.log('trl: ', this.ExpToString(trl))
-
-        // console.log(max, this.ExpToString(src))
-        while(i < max){
-            if(this.CheckFromRules(rl, rr, sub, tsrc, tar)){
-                return true
+        if(lst.length == 1 ){
+            return [lst]
+        }
+        else{
+            for(let i = 0; i < lst.length; i ++){
+                let item = [lst[i]]
+                let rmlst = lst.slice(0,i).concat(lst.slice(i+1, lst.length))
+                let nextlv = this.GetAllVariance(rmlst, choice-1)
+                //take all the list from the next level and concat the removed element to every list.
+                //if rule expression has less unique operands than subexp then skip the first n level where n is the difference
+                for(const l of nextlv) {
+                    ret.push(item.concat(l))
+                }    
             }
-            // console.log(i)
-            tsrc = this.incOperands(this.cloneExp(tsrc))
-            // console.log('!', this.ExpToString(tsrc))
-            i+=1
         }
-        return false
+        return ret
     }
 
-    CheckFromRules(rl, rr, sub, src, tar){
-        // console.log('!', this.ExpToString(src))
+    GetAllOperands(exp){
+        let ret = []
+        for(const opt of exp){
+            if (!opt.operands) continue
+            for(const opr of opt.operands){
+                if(!ret.includes(opr)){
+                    ret.push(opr)
+                }
+            }
+        }
+        return ret 
+    }
 
-        // if(this.ExpToString(sub[0]).includes(', #101 $1 $1 #10 2 3 , #3 1 , #3 1 ,')) console.log('!', this.ExpToString(sub[0]))
+    UpdateOperands(comb, exp){
+        let nexp = this.cloneExp(exp)
+        for(let subi = 0 ; subi < nexp.length; subi++ ){
+            if(nexp[subi].operands){
+                for(let i = 0; i< nexp[subi].operands.length; i++ ){
+                    for(let j = 0 ; j < comb.length; j++){
+                        if((j+1).toString() == nexp[subi].operands[i]){
+                            nexp[subi].operands[i] = comb[j] 
+                        }
+                    }
+                }
+            }
+        }
+        // console.log(nexp)
+        return nexp
+    }
+    ReplaceOperandsVariance(tarl, tarr, combinations){
+        let ret = []
+        for(const comb of combinations){
+            let subl = this.UpdateOperands(comb, tarl)
+            let subr = this.UpdateOperands(comb, tarr)
+            ret.push([subl, subr])
+        }
+        return ret
+    }
+    GetAllOperandsVariance(src, tarl, tarr){
+        let alloprsrc = this.GetAllOperands(src)
+        let combineexp = tarl.concat(tarr)
+        let alloprtarlen = this.GetAllOperands(combineexp).length
+        // console.log(alloprtarlen)
+        let combinations = this.GetAllVariance(alloprsrc, alloprtarlen)
+        let ret = this.ReplaceOperandsVariance(tarl, tarr, combinations) 
+        return ret 
+    }
+    
 
-        // if(this.ExpToString(rr).includes('#3')){
-        //     console.log('sub:', sub[1], this.ExpToString(sub[0]))
-        // }
-        //normalize rules
-        let r = this.Operands_normalize(this.genRule('!'+this.ExpToString(rl)+'@'+this.ExpToString(rr)))
-        let [trl,trr] = [r.leftexps, r.rightexps]
-
-        if(this.Same(trl, sub[0]) && this.Check(trr, sub, src, tar)) return true 
-        if(this.Same(trr, sub[0]) && this.Check(trl, sub, src, tar)) return true 
-        
+    MatchCv(rl, rr, sub, src, tar){
         //record sub operands, sub is not be normalized 
+        let [trl,trr] = [this.cloneExp(rl), this.cloneExp(rr)]
         let oprtable = {}
         let tsub = this.Operands_normalize_exps(this.cloneExp(sub[0]),oprtable)[0]
         oprtable = this.flipKeyandValue(oprtable)      
         if(tsub.length == 0) tsub = this.genRule('!,@,').leftexps
-
         //check if has cv
         if(this.hasCV(trl) || this.hasCV(trr)){            
-            // console.log('trl: ', this.ExpToString(trl), 'trr: ', this.ExpToString(trr))
             //preparing cv values in rules
             let rrl = this.genRule('!'+this.ExpToString(trl) + '@' + this.ExpToString(trl))
             let rrr = this.genRule('!'+this.ExpToString(trr) + '@' + this.ExpToString(trr))
@@ -470,10 +474,6 @@ class ProofAssistant {
         }
 
         if(this.Same(trl, tsub)){
-            // if(this.ExpToString(tsub).includes('#4 3')){
-            //     console.log(this.ExpToString(trl), '@' ,this.ExpToString(trr))
-
-            // }
             //trr is assigned with sub's operands 
             let normalized = this.Operands_normalize_exps(trr, oprtable)[0]
             if(this.Check(normalized, sub, src, tar)){
@@ -482,11 +482,6 @@ class ProofAssistant {
         }
 
         if(this.Same(trr, tsub)){
-
-            // if(this.ExpToString(tsub).includes('#4 3')){
-            //     console.log(this.ExpToString(trl), '@' ,this.ExpToString(trr))
-
-            // }
             let normalized =this.Operands_normalize_exps(trl, oprtable)[0]
 
             if(this.Check(normalized, sub, src, tar)){
@@ -496,22 +491,51 @@ class ProofAssistant {
         return false
     }
 
-    Check(normalized, sub, src, tar){
-        let allnew = this.getAllCombine(normalized, sub, src)
+    CheckFromRules(rl, rr, sub, src, tar){
+
+        //normalize rules
+        let operandsVarianceRules = this.GetAllOperandsVariance(src, rl, rr)
+        // console.log('!',this.ExpToString(sub[0]))
         
+        for(const rule of operandsVarianceRules){
+            if(this.Same(rule[0], sub[0])){
+                // console.log('!',this.ExpToString(sub[0]))
+
+                if(this.Check(rule[1], sub, src, tar)) return true
+            }
+            if(this.Same(rule[1], sub[0])){
+                // console.log('!',this.ExpToString(sub[0]))
+
+                if(this.Check(rule[0], sub, src, tar)) return true 
+            }
+            if(this.MatchCv(rule[0], rule[1], sub, src, tar)) return true
+
+        }
+        return false
+    }
+
+    Check(normalized, sub, src, tar, debug = false){
+        let allnew = this.getAllCombine(normalized, sub, src)
+        if(debug){
+            for(const x of allnew){
+                console.log(this.ExpToString(x))
+            }
+        }
         for(const v of allnew){
-            // console.log('v: ', this.ExpToString(v))
+            // if(this.ExpToString(normalized).includes('#3 2 , #4 2')){
+            //     console.log('v: ', this.ExpToString(v))
+            // }
             if(this.Same(v, tar)){
                 return true
             }
         }
         return false
     }
+
+    //getAllCombine takes care of all different ways of substituing when 
+    //expression contains branches
     getAllCombine(normalized, sub, src){
-        // if(this.ExpToString(normalized).includes('#4 3')){
-        //     console.log('norm: ', this.ExpToString(normalized))
-        //     console.log()
-        // }
+
         let begin = src.slice(0, sub[1])
         let end = src.slice(sub[1]+sub[0].length+1, src.length)
         let beginbr = this.getLastBr(begin)
@@ -545,7 +569,6 @@ class ProofAssistant {
         else{
             //begin starts after all branch closed
             let n = this.substitute(normalized, [sub[0], sub[1]], src)
-
             all.push(n)
         }
         
@@ -567,10 +590,10 @@ class ProofAssistant {
                 let x = begin.concat(combine)
                 return x 
             }else{
-                return begin.concat(repl).concat(src.slice(sub[1], src.length))
+                return begin.concat(repl).concat(src.slice(sub[1]+sub[0].length, src.length))
             }
         }else{
-            return begin.concat(repl).concat(src.slice(sub[1], src.length))
+            return begin.concat(repl).concat(src.slice(sub[1]+sub[0].length, src.length))
         }
     }
 
@@ -718,7 +741,7 @@ class ProofAssistant {
         }
         return exps 
     }
-    //operands of left and right exps are equivalent iff 
+
     permuteOperands(exps){
         let i = 0
         let max = this.getmax(exps)
