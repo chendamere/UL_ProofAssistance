@@ -79,34 +79,6 @@ class ProofAssistant {
         return ret
     }
 
-    // CombineExp(leftexp,rightexp){
-    //     let ret = []
-    //     let lbr = this.getFirstBr(leftexp)
-    //     let rbr = this.getFirstBr(rightexp)
-
-    //     if(lbr.index != -1 && rbr.index != -1){
-    //         let [ltop, lbot] = this.getTopBot(leftexp, lbr)
-    //         let [rtop, rbot] = this.getTopBot(rightexp, rbr)
-    //         let combinedtop = this.CombineExp(ltop,rtop)
-    //         let combinedbot = this.CombineExp(lbot,rbot)
-    //         let tempbr = leftexp[lbr.index]
-    //         if(lbr.br =='#101' && rbr.br =='#102'){
-    //             tempbr.Opparam[0] = '#100'
-    //         }else if(lbr.br == rbr.br){
-    //             if(lbr.br == '#101' || lbr.br == '#102' || lbr.br == '#100'){
-    //                 tempbr.Opparam[0] = lbr.br                    
-    //             }
-    //         }
-    //         ret = leftexp.slice(0, lbr.index).concat([tempbr]).concat(combinedtop).concat(combinedbot)
-    //         ret = this.updateBr(leftexp, combinedtop, combinedbot, lbr)
-    //         ret = ret.concat(rightexp.slice(this.getBranchEnd(rightexp, rbr), rightexp.length))
-    //     }
-    //     else{
-    //         ret = leftexp.concat(rightexp)
-    //     }
-    //     return ret 
-    // }
-
     cloneExp(exp){
         let ret = this.genRule('!,@,'+this.ExpToString(exp)).rightexps
         if(ret[0].operator == '#0') return []
@@ -355,6 +327,7 @@ class ProofAssistant {
         subexps = this.addEmpty(subexps)
         subexps = this.sort_subexp(subexps)
         for(const sub of subexps){
+            // console.log(sub[1], this.ExpToString(sub[0]))
             for(const rule of this.allrules){
                 if(this.CheckFromRules(rule.leftexps, rule.rightexps, sub, src, tar)) return true
             }
@@ -495,17 +468,12 @@ class ProofAssistant {
 
         //normalize rules
         let operandsVarianceRules = this.GetAllOperandsVariance(src, rl, rr)
-        // console.log('!',this.ExpToString(sub[0]))
         
         for(const rule of operandsVarianceRules){
             if(this.Same(rule[0], sub[0])){
-                // console.log('!',this.ExpToString(sub[0]))
-
                 if(this.Check(rule[1], sub, src, tar)) return true
             }
             if(this.Same(rule[1], sub[0])){
-                // console.log('!',this.ExpToString(sub[0]))
-
                 if(this.Check(rule[0], sub, src, tar)) return true 
             }
             if(this.MatchCv(rule[0], rule[1], sub, src, tar)) return true
@@ -522,9 +490,7 @@ class ProofAssistant {
             }
         }
         for(const v of allnew){
-            // if(this.ExpToString(normalized).includes('#3 2 , #4 2')){
-            //     console.log('v: ', this.ExpToString(v))
-            // }
+
             if(this.Same(v, tar)){
                 return true
             }
@@ -542,26 +508,46 @@ class ProofAssistant {
         let all = []
         //go to last br 
         if(beginbr.index != -1){
-                
-            if(this.inBranch(beginbr, sub[1])){
-                let [top, bot] = this.getTopBot(src, beginbr.index)
-                let range = this.getBranchEnd(src, beginbr)
-                if(sub[1] <= beginbr.index + beginbr.top){
-                    let ntops = this.getAllCombine(normalized, [sub[0], sub[1]-(begin.index+1)], top)
-                    for(const x of ntops){
-                        let n = begin.concat(this.updateBr(begin, x, bot).concat(end)).concat(src.slice(range,src.length))
-                        all.push(n)
-                    }
-                }else{
-                    //sub[1] is in bot branch
-                    let nbots = this.getAllCombine(normalized, [sub[0], sub[1]-(begin.index+top.length+1)], bot)
-                    for(const x of nbots){
-                        let n = begin.concat(this.updateBr(begin, top, x).concat(end)).concat(src.slice(range,src.length))
-                        all.push(n)
-                    }                    
+
+            let [top, bot] = this.getTopBot(src, beginbr)
+            // console.log('src: ', this.ExpToString(src))
+            // console.log('top: ', this.ExpToString(top))
+            // console.log('bot: ', this.ExpToString(bot))
+
+            let range = this.getBranchEnd(src, beginbr)
+            if(sub[1] > beginbr.index && sub[1] <= beginbr.index + beginbr.top+1){
+                // console.log('!', this.ExpToString(top))
+
+                let ntops = this.getAllCombine(normalized, [sub[0], sub[1]-(beginbr.index+1)], top)
+                for(const x of ntops){
+                    // console.log('added to top: ', this.ExpToString(x))
+                    
+                    let n = this.updateBr(begin, x, bot, beginbr).concat(src.slice(range,src.length))
+                    // let n = begin.concat(this.updateBr(begin, top, x, beginbr).concat(end)).concat(src.slice(range,src.length))
+                    all.push(n)
                 }
-            }else{
-                //begin starts after all branch closed
+            }
+            if(sub[1] > beginbr.index + beginbr.top && sub[1] <= beginbr.index + beginbr.top + beginbr.bot +1)
+            {
+                //sub[1] is in bot branch
+                // console.log('!', sub[1], beginbr.index + beginbr.top, sub[0])
+                let nbots = this.getAllCombine(normalized, [sub[0], sub[1]-(beginbr.index+top.length+1)], bot)
+
+                for(const x of nbots){
+                    // console.log('added to bot: ', this.ExpToString(x), sub[0])
+
+                    let n = this.updateBr(begin, top, x, beginbr).concat(src.slice(range,src.length))
+                    // let n = begin.concat(this.updateBr(begin, top, x, beginbr).concat(end)).concat(src.slice(range,src.length))
+                    all.push(n)
+                }                    
+            }
+            // if(beginbr.index + beginbr.top + 1 == sub[1]){
+            //     let addtotopfront = this.updateBr(begin, normalized, bot, beginbr)
+            //     // console.log('addtotopfront: ', this.ExpToString(addtotopfront), 'added: ', this.ExpToString(normalized))
+            //     all.push(addtotopfront)
+            // }
+            
+            if(beginbr.index+beginbr.top+beginbr.bot+1 == sub[1]){
                 let n = this.substitute(normalized, [sub[0], sub[1]], src)
                 all.push(n)
             }
@@ -575,18 +561,26 @@ class ProofAssistant {
         return all
     }
 
-    substitute(repl, sub, src){
+    substitute(repl, tsub, src){
+        let sub = tsub
+        if(tsub[0] && tsub[0][0]){
+            if(tsub[0][0].operator == '#0'){
+                sub[0] = []
+            }
+        }
         let srcbr = this.getFirstBr(src)
         let begin = src.slice(0, sub[1])
+        // console.log(this.ExpToString(begin))
 
         //if src has branch
         if(srcbr.index != -1){
             let subbrcheck = this.getFirstBr(sub[0])
             //if sub has branch
-            if(subbrcheck != -1){
+            if(subbrcheck.index != -1){
                 let rest = this.getRest(src,sub[0])
-                // console.log('rest: ', this.ExpToString(rest))
+                // console.log('rest: ', this.ExpToString(begin), sub[1], this.ExpToString(rest), '|', this.ExpToString(sub[0]), subbrcheck)
                 let combine = this.CombineExp(repl, rest)
+                // console.log('!combine: ', this.ExpToString(combine))
                 let x = begin.concat(combine)
                 return x 
             }else{
@@ -606,8 +600,10 @@ class ProofAssistant {
             let topcombine = this.CombineExp(srctop, tartop)
             let botcombine = this.CombineExp(srcbot, tarbot)
             let begin = src.slice(0,srcbr.index+1)
-            let range = this.getBranchEnd(tar, tarbr)
+            let range = this.getBranchEnd(tar, tarbr)+1
             let end = src.slice(range ,tar.length)
+            // console.log('src: ', this.ExpToString(src), range, src.length)
+            // console.log('end: ', this.ExpToString(end))
             let ret =  this.updateBr(begin, topcombine, botcombine,srcbr ).concat(end)
             return ret
         }
@@ -625,7 +621,9 @@ class ProofAssistant {
             let toprest = this.getRest(exptop, subtop)
             let botrest = this.getRest(expbot, subbot)
             let end = this.getBranchEnd(exp, expbr)
-            let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr).concat(end)
+            
+            let subbr2 = this.getFirstBr([sub[subbr.index]])
+            let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr2).concat(end)
             return ret
         }else{
             return exp.slice(sub.length, exp.length)
@@ -681,7 +679,7 @@ class ProofAssistant {
 
     getTopBot(exp, br){
         if(br.index == -1) return [[],[]] 
-        let topend = br.index + br.top 
+        let topend = br.index + br.top
         let t = br.index +1
         let top = []
         let bot =[]
@@ -713,6 +711,7 @@ class ProofAssistant {
     }
     updateBr(texp, topexp, botexp, br){
         let exp = this.cloneExp(texp.slice(0,texp.length))
+        // console.log('!!!', this.ExpToString(exp))
         if(br.index == -1) return exp
         let [top, bot] = this.getTopBot(exp, br)
         let range = top.length + bot.length
@@ -773,7 +772,7 @@ class ProofAssistant {
     //same thing as maximizing the length of left and right 
     getFirstBr(exp){
         let br = {index : -1, next : {}, prev:-1, bot:exp.length, top:exp.length, br: ''}
-        // if(exp.length == 0) return br
+        if(exp.length == 0) return br
 
         let ti = 0
         // console.log('leftbr: ', br)
