@@ -7,6 +7,8 @@
 //for a proof to satisfy, there need to exist one or more equivalent expression.
 //there exist one or more equivalent expression if 
 
+import { error } from "console"
+
 class ProofAssistant {
     constructor (allrules, parser, Exps){
         this.allrules = allrules
@@ -16,7 +18,6 @@ class ProofAssistant {
         this.unaryOperators = this.parser.unaryOperators
         this.binaryOperators = this.parser.binaryOperators
         this.BrOperators =  this.parser.branch
-        // console.log(this.BrOperators)
         this.AddSpacetoExp()
     }
 
@@ -31,7 +32,8 @@ class ProofAssistant {
         let tempv = this.genRule('!'+start+'@'+end)
         if (this.Same(tempv.leftexps, tempv.rightexps)) return 1
         if(!this.isRule(tempv)){
-            if(this.MatchandCheck(tempv.leftexps, tempv.rightexps)) {
+            console.log('start!')
+            if(this.MatchandCheck(tempv.leftexps, tempv.rightexps, debug)) {
                 return 1    
             }
             else{
@@ -184,7 +186,7 @@ class ProofAssistant {
         let sub = []
         let check
         while(i >= 0){
-            let checkbr = this.getLastBr(exp.slice(0,i))
+            let checkbr = this.getLastBr(exp.slice(0,i+1))
             let range = this.getBranchEnd(exp,checkbr)
             if(checkbr.index <= i && i < range && checkbr.index != -1){
                 //prepare top and bototm expression, get br operation, and recursive step
@@ -216,8 +218,12 @@ class ProofAssistant {
                 let botsub = [[[],i]].concat(trimbackb[0])
 
                 //#102 represents back branch
+                let tempoperator = branchexp[0].operator
+                let tempoperands = this.deepClone(branchexp[0].operands)
                 if(checkbr.br == '#100'){
                     branchexp[0].Opparam[0] = '#102'
+                    branchexp[0].operator = ''
+                    branchexp[0].operands = []
                 }
                 let backexp = exp.slice(i+1, exp.length)
                 for(const topexp of topsub){
@@ -229,8 +235,13 @@ class ProofAssistant {
                 }
                 i = checkbr.index-1
                 //pushing identity
+
+                // console.log('exp: ', this.ExpToString(exp), 'checkbr: ', checkbr)
+
                 if(checkbr.br == '#100'){
                     branchexp[0].Opparam[0] = '#100'
+                    branchexp[0].operator = tempoperator
+                    branchexp[0].operands = tempoperands
                     ret.push([branchexp, k+checkbr.index])
                 }
             }
@@ -278,7 +289,7 @@ class ProofAssistant {
                         ret.push([x[0].concat(y[0]), x[1]])
                     }
                 }
-                
+
                 i += bend
                 let nextbr = this.getFirstBr(exp.slice(i, exp.length))
                 let endi = nextbr.index == -1 ? exp.length : i + nextbr.index
@@ -292,6 +303,7 @@ class ProofAssistant {
                         ret.push([x[0].concat(y[0]), x[1]])
                     }
                 }
+               
                 
                 sublist = sublist.concat(brsubf[1]).concat(brsubb[1])
                 sublist = sublist.concat(this.getsubnorm(front, i-bend)).concat(this.getsubnorm(back, i))
@@ -321,15 +333,16 @@ class ProofAssistant {
         return rettable 
     }
 
-    MatchandCheck(src, tar){
+    MatchandCheck(src, tar,debug =false){
         let [subexps, subexps2] = this.getsub(src)
         subexps = subexps.concat(subexps2)
         subexps = this.addEmpty(subexps)
         subexps = this.sort_subexp(subexps)
+        console.log('expsub X subexps = ', subexps.length * this.allrules.length)
         for(const sub of subexps){
             // console.log(sub[1], this.ExpToString(sub[0]))
             for(const rule of this.allrules){
-                if(this.CheckFromRules(rule.leftexps, rule.rightexps, sub, src, tar)) return true
+                if(this.CheckFromRules(rule.leftexps, rule.rightexps, sub, src, tar, debug)) return true
             }
         }
         return false
@@ -464,12 +477,16 @@ class ProofAssistant {
         return false
     }
 
-    CheckFromRules(rl, rr, sub, src, tar){
+    CheckFromRules(rl, rr, sub, src, tar, debug = false){
 
         //normalize rules
         let operandsVarianceRules = this.GetAllOperandsVariance(src, rl, rr)
+        // console.log('CheckFromRules')
         
         for(const rule of operandsVarianceRules){
+            if(debug){
+                console.log(this.RuleToString(rule))
+            }
             if(this.Same(rule[0], sub[0])){
                 if(this.Check(rule[1], sub, src, tar)) return true
             }
@@ -486,11 +503,10 @@ class ProofAssistant {
         let allnew = this.getAllCombine(normalized, sub, src)
         if(debug){
             for(const x of allnew){
-                console.log(this.ExpToString(x))
+                console.log('getallcombine: ', this.ExpToString(x))
             }
         }
         for(const v of allnew){
-
             if(this.Same(v, tar)){
                 return true
             }
@@ -554,6 +570,8 @@ class ProofAssistant {
         }
         else{
             //begin starts after all branch closed
+            // console.log('here!','normalized: ', this.ExpToString(normalized), 'sub[0]', this.ExpToString(sub[0]), 'src: ', this.ExpToString(src))
+
             let n = this.substitute(normalized, [sub[0], sub[1]], src)
             all.push(n)
         }
@@ -569,64 +587,122 @@ class ProofAssistant {
             }
         }
         let srcbr = this.getFirstBr(src)
+        let subbrcheck = this.getFirstBr(sub[0])
         let begin = src.slice(0, sub[1])
         // console.log(this.ExpToString(begin))
 
         //if src has branch
-        if(srcbr.index != -1){
-            let subbrcheck = this.getFirstBr(sub[0])
+        if(srcbr.index != -1 && subbrcheck.index != -1){
             //if sub has branch
-            if(subbrcheck.index != -1){
                 let rest = this.getRest(src,sub[0])
-                // console.log('rest: ', this.ExpToString(begin), sub[1], this.ExpToString(rest), '|', this.ExpToString(sub[0]), subbrcheck)
+                // console.log('   begin: ', this.ExpToString(begin), 'src: ', this.ExpToString(src), 'sub[1]: ', sub[1], 'sub[0]', this.ExpToString(sub[0]), 'rest: ', this.ExpToString(rest), 'repl: ', this.ExpToString(repl), )
                 let combine = this.CombineExp(repl, rest)
-                // console.log('!combine: ', this.ExpToString(combine))
+                // console.log('   !combine: ', this.ExpToString(combine))
                 let x = begin.concat(combine)
                 return x 
-            }else{
-                return begin.concat(repl).concat(src.slice(sub[1]+sub[0].length, src.length))
-            }
         }else{
             return begin.concat(repl).concat(src.slice(sub[1]+sub[0].length, src.length))
         }
     }
 
-    CombineExp(src,tar){
+    CombineExp(src, tar, getback = false){
         let srcbr = this.getFirstBr(src)
         let tarbr = this.getFirstBr(tar)
         if(srcbr.index != -1 && tarbr.index != -1){
             let [srctop, srcbot] = this.getTopBot(src, srcbr)
             let [tartop, tarbot] = this.getTopBot(tar, tarbr)
-            let topcombine = this.CombineExp(srctop, tartop)
-            let botcombine = this.CombineExp(srcbot, tarbot)
             let begin = src.slice(0,srcbr.index+1)
-            let range = this.getBranchEnd(tar, tarbr)+1
-            let end = src.slice(range ,tar.length)
-            // console.log('src: ', this.ExpToString(src), range, src.length)
-            // console.log('end: ', this.ExpToString(end))
-            let ret =  this.updateBr(begin, topcombine, botcombine,srcbr ).concat(end)
-            return ret
+            let tarbegin = tar.slice(0, tarbr.index+1)
+            let range = this.getBranchEnd(src, srcbr)
+            let endtrim = src.slice(range, src.length)
+
+            
+            if((srcbr.br == '#100' || srcbr.br == '#101') && (tarbr.br == '#101'|| tarbr.br == '#100')){
+                let topcombine = this.CombineExp(srctop, tartop)
+                let botcombine = this.CombineExp(srcbot, tarbot)
+                let ret = this.updateBr(begin, topcombine, botcombine,srcbr).concat(endtrim)
+
+                return ret
+            }
+            else if((srcbr.br == '#100' || srcbr.br == '#102') && (tarbr.br == '#102' || tarbr.br == '#100')){
+                let topcombine = this.CombineExp(srctop, tartop, true)
+                let botcombine = this.CombineExp(srcbot, tarbot, true)
+                let ret =  this.updateBr(tarbegin, topcombine, botcombine,tarbr).concat(endtrim)
+
+                return ret
+
+            }else if(srcbr.br == '#101' && tarbr.br == '#102'){
+                // throw new Error('error in CombineExp')
+                // console.log(srcbr.index)
+                let topcombine = this.CombineExp(srctop, tartop)
+                let botcombine = this.CombineExp(srcbot, tarbot)
+                let ret = this.updateBr(tarbegin, topcombine, botcombine,tarbr).concat(endtrim)
+                ret[tarbr.index].Opparam[0] = '#100'
+                ret[tarbr.index].operator = src[srcbr.index].operator
+                ret[tarbr.index].operands = src[srcbr.index].operands
+                return ret
+                
+            }
+            else{
+                return src
+            }
         }
         else{
-            return src.concat(tar)
+            if(getback){
+                return tar.concat(src)
+            }else{
+                return src.concat(tar)
+            }
         }
     }
 
-    getRest(exp, sub){
+    getRest(exp, sub, getback = false){
         let subbr = this.getFirstBr(sub)
         let expbr = this.getFirstBr(exp)
         if(subbr.index != -1 && expbr.index != -1){
             let [subtop, subbot] = this.getTopBot(sub, subbr)
             let [exptop, expbot] = this.getTopBot(exp, expbr)
-            let toprest = this.getRest(exptop, subtop)
-            let botrest = this.getRest(expbot, subbot)
-            let end = this.getBranchEnd(exp, expbr)
-            
-            let subbr2 = this.getFirstBr([sub[subbr.index]])
-            let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr2).concat(end)
-            return ret
+            if((expbr.br == '#101'|| expbr.br =='#100') && (subbr.br == '#101'|| subbr.br =='#100')){
+                let toprest = this.getRest(exptop, subtop)
+                let botrest = this.getRest(expbot, subbot)
+                let range = this.getBranchEnd(exp, expbr)
+                let endtrim = exp.slice(range,exp.length)
+                let subbr2 = this.getFirstBr([exp[expbr.index]])
+                let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr2).concat(endtrim)
+                // console.log('!!!', this.ExpToString(endtrim))
+                if(expbr.br == '#100' && subbr.br == '#101'){
+                    //if exp contains #100, and subbr is #101, then the rest expression contains #102
+                    ret[subbr.index].Opparam[0] = '#102'
+                    ret[subbr.index].operator = null
+                    ret[subbr.index].operands = []
+                    // console.log('!!!, ', this.ExpToString(ret))
+
+                    return ret
+                }
+                else if(toprest.length == 0 && botrest.length == 0) return endtrim
+                else return ret
+            }else if((expbr.br == '#102'|| expbr.br =='#100') && (subbr.br == '#102'|| subbr.br =='#100')){
+                let toprest = this.getRest(exptop, subtop, true)
+                let botrest = this.getRest(expbot, subbot, true)
+                let begintrim = exp.slice(0, expbr.index+1)
+                let ret = this.updateBr(begintrim, toprest, botrest, subbr)
+                return ret
+            }
+            else{               
+                console.log('exp: ', this.ExpToString(exp))
+                console.log('sub: ', this.ExpToString(sub))
+                throw new Error('error in getRest')
+                // return exp
+
+            }
         }else{
-            return exp.slice(sub.length, exp.length)
+            if(!getback) {
+     
+                return exp.slice(sub.length, exp.length)                
+            }else{
+
+                return exp.slice(0, exp.length - sub.length)                
+            }
         }
     }
 
@@ -671,7 +747,6 @@ class ProofAssistant {
                     }
                 }
             }
-            // console.log(exp)
             i+= 1
         }
         return end
@@ -711,7 +786,7 @@ class ProofAssistant {
     }
     updateBr(texp, topexp, botexp, br){
         let exp = this.cloneExp(texp.slice(0,texp.length))
-        // console.log('!!!', this.ExpToString(exp))
+
         if(br.index == -1) return exp
         let [top, bot] = this.getTopBot(exp, br)
         let range = top.length + bot.length
@@ -775,7 +850,6 @@ class ProofAssistant {
         if(exp.length == 0) return br
 
         let ti = 0
-        // console.log('leftbr: ', br)
         while(ti < exp.length) {
             if(exp[ti]){
                 if(exp[ti].Opparam){
@@ -794,7 +868,6 @@ class ProofAssistant {
         let br = {index : -1, next : {}, prev:-1, bot:-1, top:-1, br: ''}
         let ti = 0
         let broffset = 0 
-        // console.log('leftbr: ', br)
         while(ti < exp.length) {
             if(exp[ti].Opparam){
                 if(exp[ti].Opparam[0]){
@@ -821,7 +894,6 @@ class ProofAssistant {
     Operands_normalize(rule) {
         let operands_table = {}
         let leftexps = this.Operands_normalize_exps(rule.leftexps, operands_table)[0]
-        // console.log(operands_table)
         let rightexps = this.Operands_normalize_exps(rule.rightexps, operands_table)[0]
 
         return {leftexps: leftexps, rightexps:rightexps}
@@ -843,7 +915,6 @@ class ProofAssistant {
                 if(ret_exp.operands.length > 0){
                     let i = 0
                     while(i < ret_exp.operands.length){
-                        // console.log('!', ret_exp)
                         let operand = ret_exp.operands[i]
                         if(operand){
                             if(!temp_table[operand]){
@@ -1333,7 +1404,6 @@ class ProofAssistant {
 
     PrintAllRules(){
         for(const rule of this.allrules){
-            // console.log(rule)
             console.log(this.RuleToString(rule))
         }
     }
@@ -1354,7 +1424,6 @@ class ProofAssistant {
     }
     ExpToString(exps) {
         let ret = ', '
-        // console.log(exps)
         if(!exps) return ret
         for (const exp of exps){
             
@@ -1386,7 +1455,6 @@ class ProofAssistant {
         while(sortedlst[i]){
             let j = 0 
             while(sortedlst[j]){
-                // console.log('!',sortedlst[i][1])
                 if(sortedlst[i][1] <= sortedlst[j][1]){
                     let x = [...sortedlst[i]]
                     sortedlst[i] = [...sortedlst[j]]
