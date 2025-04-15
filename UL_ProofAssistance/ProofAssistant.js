@@ -32,7 +32,7 @@ class ProofAssistant {
         let tempv = this.genRule('!'+start+'@'+end)
         if (this.Same(tempv.leftexps, tempv.rightexps)) return 1
         if(!this.isRule(tempv)){
-            console.log('start!')
+            // console.log('start!')
             if(this.MatchandCheck(tempv.leftexps, tempv.rightexps, debug)) {
                 return 1    
             }
@@ -333,16 +333,48 @@ class ProofAssistant {
         return rettable 
     }
 
+    FilterAxioms(axioms, diff){
+        let ret = []
+        for(const r of axioms){
+            let leftlen = r.leftexps[0].operator=='#0' ? 0 : r.leftexps.length
+            let rightlen =  r.rightexps[0].operator=='#0' ? 0 : r.rightexps .length
+            let rdiff = Math.abs(leftlen - rightlen)
+            // console.log(rdiff)
+            if(rdiff == diff) ret.push(r)
+        }
+        return ret
+    }
+
     MatchandCheck(src, tar,debug =false){
         let [subexps, subexps2] = this.getsub(src)
         subexps = subexps.concat(subexps2)
         subexps = this.addEmpty(subexps)
         subexps = this.sort_subexp(subexps)
-        console.log('expsub X subexps = ', subexps.length * this.allrules.length)
+        // console.log('expsub X subexps = ', subexps.length * this.allrules.length)
+        // let debugdata = subexps.length * this.allrules.length
+
+
+        //too many processes!!
+        //maybe create a temporary axiom list that only contains subexpressions that have the same length of the subexpression
+        
+
+
+        let srclen = src.lengh == 0 ? src.length: src.length
+        let tarlen = tar.lengh == 0 ? tar.length: tar.length
+        let lendiff = Math.abs(srclen - tarlen)
+        // console.log("lendiff", lendiff)
+        let revelantAxioms = this.FilterAxioms(this.allrules, lendiff)
+
+        //we filter the axioms by having the same difference in length as the statement
+
         for(const sub of subexps){
-            // console.log(sub[1], this.ExpToString(sub[0]))
-            for(const rule of this.allrules){
-                if(this.CheckFromRules(rule.leftexps, rule.rightexps, sub, src, tar, debug)) return true
+            let sublen = sub[0].length == 0 ? 1 : sub[0].length
+            for(const rule of revelantAxioms){
+                //if sublen does not have same length as expressions in rule, then dismiss it
+                if(sublen == rule.leftexps.length || sublen == rule.rightexps.length){
+                    if(this.CheckFromRules(rule, sub, src, tar, debug)) return true
+                }
+                else continue
             }
         }
         return false
@@ -427,8 +459,9 @@ class ProofAssistant {
         let alloprsrc = this.GetAllOperands(src)
         let combineexp = tarl.concat(tarr)
         let alloprtarlen = this.GetAllOperands(combineexp).length
-        // console.log(alloprtarlen)
+        console.log("alloprtarlen: ", alloprtarlen)
         let combinations = this.GetAllVariance(alloprsrc, alloprtarlen)
+        console.log('combination: ', combinations.length)
         let ret = this.ReplaceOperandsVariance(tarl, tarr, combinations) 
         return ret 
     }
@@ -477,23 +510,41 @@ class ProofAssistant {
         return false
     }
 
-    CheckFromRules(rl, rr, sub, src, tar, debug = false){
+    CheckFromRules(rule, sub, src, tar, debug = false, debugdata){
 
         //normalize rules
+
+        //checking too many operand variances 
+
+
+        //it is a good idea to check operator equivalence before operands equivalenec
+
+
+        // let tarstatement = this.genRule('!'+this.ExpToString(src)+'@'+this.ExpToString(tar))
+        // let check = this.OperatorEquivalence(rule, tarstatement)
+        // if(!check) return false
+        let [rl,rr] = [rule.leftexps, rule.rightexps]
+
         let operandsVarianceRules = this.GetAllOperandsVariance(src, rl, rr)
-        // console.log('CheckFromRules')
+        console.log('operandsVarianceRules.length', operandsVarianceRules.length)
         
         for(const rule of operandsVarianceRules){
-            if(debug){
-                console.log(this.RuleToString(rule))
-            }
+
             if(this.Same(rule[0], sub[0])){
+                if(debug){
+                    console.log('checking: ', this.ExpToString(rule[1]))
+                }
                 if(this.Check(rule[1], sub, src, tar)) return true
             }
             if(this.Same(rule[1], sub[0])){
+                if(debug){
+
+                    console.log('checking: ', this.ExpToString(rule[0]))
+                }
                 if(this.Check(rule[0], sub, src, tar)) return true 
             }
             if(this.MatchCv(rule[0], rule[1], sub, src, tar)) return true
+            // console.log('here')
 
         }
         return false
@@ -1170,8 +1221,6 @@ class ProofAssistant {
         //if rule is Blb, then add operator to tartable if operator exists
         //if src has #13, then treat #12 in tar as #13
 
-        
-
         let tartablel = this.operatorlist(tarstatement.leftexps, opt)
         let tartabler = this.operatorlist(tarstatement.rightexps, opt)
 
@@ -1266,8 +1315,7 @@ class ProofAssistant {
                     return false
                 }
                 if(src[i].operator && tar[i].operator){
-                    if(src[i].operator != tar[i].operator) {
-                        return false }
+                    if(src[i].operator != tar[i].operator) return false 
                 }
                 //check if Opparam match
                 if(src[i].Opparam ^ tar[i].Opparam) return false

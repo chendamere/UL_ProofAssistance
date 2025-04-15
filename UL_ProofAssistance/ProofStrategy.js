@@ -73,7 +73,7 @@ export default class ProofStrategy {
 
             //prove the statement in the user provided stack 
             // console.log( tpexp.length, this.expstack.length)
-            console.log(tpexp[expi].length)
+            // console.log(tpexp[expi].length)
 
             let ret = this.proveExps(tpexp[expi], p, q, debugging)
             // console.log(ret.length)
@@ -111,7 +111,7 @@ export default class ProofStrategy {
         let begincheck = this.pf.genRule('!'+start+'@'+end)
         let r1variant = this.pf.try_match_operand_order(begincheck)
         for(const v of r1variant){
-            console.log('here')
+            // console.log('here')
 
             if(this.pf.Proving(this.pf.ExpToString(v.leftexps), this.pf.ExpToString(v.rightexps), debug) == 1){
                 return this.pf.ExpToString(v.rightexps)

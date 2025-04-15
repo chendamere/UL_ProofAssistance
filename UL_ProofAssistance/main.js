@@ -88,7 +88,7 @@ function f() {
 function p(){
     for(const test of indtests.slice(indtests.length-1, indtests.length)){
         let ind = latexparser.Parse(test[1])
-        console.log(pf.Proving(pf.ExpToString(ind.leftexps),pf.ExpToString(ind.rightexps)), true)
+        console.log(pf.Proving(pf.ExpToString(ind.leftexps),pf.ExpToString(ind.rightexps), true))
         console.log('++++++++++++++++++++\n\n')
     }
 }
