@@ -151,7 +151,7 @@ export default class ProofStrategy {
                 return -1
             }    
         }
-        console.log('ret: ', ret)
+        // console.log('ret: ', ret)
         return ret
     }
 
