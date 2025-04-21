@@ -535,8 +535,10 @@ class ProofAssistant {
 
         //it is a good idea to check operator equivalence before operands equivalenec
         let [rl,rr] = [rule.leftexps, rule.rightexps]
-        if(this.MatchCv(rl, rr, sub, src, tar)) return true
+        // console.log('matchcv start')
 
+        if(this.MatchCv(rl, rr, sub, src, tar)) return true
+        // console.log('matchcv finish')
         //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
         if(this.GetAllOperands(sub[0]).length == 0){
             let oprvariancel = this.GetAllOperandsVariance(rl, src, tar)
@@ -547,6 +549,11 @@ class ProofAssistant {
             for(const x of oprvariancr){
                 if(this.Check(x, sub, src, tar, debug)) return true
             }
+            console.log('GetAllOperandsVariance: ', this.ExpToString(sub[0]), oprvariancel.length, oprvariancr.length)
+            if(oprvariancel.length > 40000){
+                console.log('too many variance: ', this.ExpToString(rr))
+            }
+
         }else{
             let nrl = this.Operands_normalize_exps(this.cloneExp(rl), {})[0]
             let nrr = this.Operands_normalize_exps(this.cloneExp(rr), {})[0]

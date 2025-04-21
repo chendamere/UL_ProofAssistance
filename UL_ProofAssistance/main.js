@@ -48,10 +48,10 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // for(const r of assumedAxiom){
 //     console.log(pf.RuleToString(r))
 // }
-ps.ProveChapter(0)
+// ps.ProveChapter(0)
 // ps.ProveChapter(1)
 
-// p()
+p()
 // CombineTest()
 // f()
 
