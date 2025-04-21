@@ -449,42 +449,18 @@ class ProofAssistant {
     }
     ReplaceOperandsVariance(src, combinations){
         let ret = []
+        let csrc = this.Operands_normalize_exps(this.cloneExp(src), {})[0]
         for(const comb of combinations){
-            let [nsrc,t] = this.Operands_normalize_exps(this.cloneExp(src), {})
-            // console.log(this.ExpToString(src))
+            let nsrc = this.cloneExp(csrc)
             let sub = this.UpdateOperands(nsrc, comb)
             ret.push(sub)
         }
         return ret
     }
     GetAllOperandsVariance(srcx, tarl, tarr){
-        // console.log('here')
         let src = this.GetAllOperands(srcx)
-
         let tar = this.GetAllOperands(tarl.concat(tarr))
-
-
-
-        // console.log("alloprsrclen: ", alloprsrclen, 'alloprtarlen: ', alloprtarlen)
-
-        // console.log("src: ", src, "tar: ", tar)
         let combinations = this.GetAllVariance(tar, src.length)
-        // console.log('combination: ', combinations)
-        // for(const c of combinations){
-        //     console.log('c: ',c)
-        // }
-        // if(combinations.length <= 1){
-        //     return []
-        // }
-        // console.log('!!!',this.ExpToString(src),combinations)
-        // console.log('combination: ', combinations.length, combinations)
-        // let combination2 = []
-        // for(const comb of combinations){
-        //     if(comb.length == alloprsrc){
-        //         combination2.push(comb)
-        //     }
-        // }
-        // console.log('combination2: ', combination2, this.ExpToString(src))
         let ret = this.ReplaceOperandsVariance(srcx, combinations) 
         // for(const x of ret){
         //     console.log('x: ', this.ExpToString(x))
@@ -537,86 +513,64 @@ class ProofAssistant {
         return false
     }
 
+    ALlOprVarianceCheck(src, tar, sub, nrl, nrr, debug = false){
+        if(sub[0].length == 0){
+            let oprvariancel = this.GetAllOperandsVariance(nrl, src, tar)
+            for(const x of oprvariancel){
+                // console.log('!',this.ExpToString(x))
+                if(this.Check(x, sub, src, tar, debug)) return true
+
+            }
+            let oprvariancr = this.GetAllOperandsVariance(nrr, src, tar)
+            for(const x of oprvariancr){
+                // console.log('!',this.ExpToString(x))
+                if(this.Check(x, sub, src, tar, debug)) return true
+
+            }
+            
+        }
+    }
+
     CheckFromRules(rule, sub, src, tar, debug = false, debugdata){
 
-        //normalize rules
-
-        //checking too many operand variances 
-
-
         //it is a good idea to check operator equivalence before operands equivalenec
+        let [rl,rr] = [rule.leftexps, rule.rightexps]
+        if(this.MatchCv(rl, rr, sub, src, tar)) return true
 
-
-        // let tarstatement = this.genRule('!'+this.ExpToString(src)+'@'+this.ExpToString(tar))
-        // let check = this.OperatorEquivalence(rule, tarstatement)
-        // if(!check) return false
-
-        // if(this.hasCV(rule.leftexps) || this.hasCV(rule.rightexps)){
-        //     if(this.MatchCv(rule[0], rule[1], sub, src, tar)) return true
-        //     else return false
-        // }
-        // else{
-            let [rl,rr] = [rule.leftexps, rule.rightexps]
-
-
-
-            let [nrl , nrl_table] = this.Operands_normalize_exps(this.cloneExp(rl), {})
-            // let nrl_flipt = this.flipKeyandValue(nrl_table)
-            let [nrr , nrr_table] = this.Operands_normalize_exps(this.cloneExp(rr), {})
-            // let nrr_flipt = this.flipKeyandValue(nrr_table)
-
-
-            let [nsub, nsub_table] = this.Operands_normalize_exps(this.cloneExp(sub[0]), {})
-
-
-            // let operandsVarianceRules = this.GetAllOperandsVariance(src, rl, rr)
-            // console.log('nrl: ',this.ExpToString(nrl), 'nsub: ',this.ExpToString(nsub), )
-            if(sub[0].length == 0){
-                let oprvariancel = this.GetAllOperandsVariance(nrl, src, tar)
-                for(const x of oprvariancel){
-                    // console.log('!',this.ExpToString(x))
-                    if(this.Check(x, sub, src, tar, debug)) return true
-
-                }
-                let oprvariancr = this.GetAllOperandsVariance(nrr, src, tar)
-                for(const x of oprvariancr){
-                    // console.log('!',this.ExpToString(x))
-                    if(this.Check(x, sub, src, tar, debug)) return true
-
-                }
-                
-            }
-
-            
-            if(this.Same(nrl, nsub)){
-                let nsub_fliptable = this.flipKeyandValue({...nsub_table})
-                let x = this.cloneExp(this.Operands_normalize_exps(this.cloneExp(rr), nsub_fliptable)[0])
-
-                if(debug){
-                    console.log('rule[0] matched in CheckFromRules: ',sub[1],  this.ExpToString(sub[0]), '--> ( ', this.ExpToString(nrl), '->',this.ExpToString(x),' )',  nsub_fliptable)
-                }
-
-                //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
-
-                if(this.Check( x, sub, src, tar, debug)) return true
-            }
-
-
-            if(this.Same(nrr, nsub)){
-                let nsub_fliptable = this.flipKeyandValue({...nsub_table})
-                // let nnrl = this.cloneExp(this.Operands_normalize_exps(this.cloneExp(this.Operands_normalize(rule).leftexps), {...nsub_table})[0])
-                let x = this.cloneExp(this.Operands_normalize_exps(this.cloneExp(rl), nsub_table)[0])
-                if(debug){
-                    console.log('rule[1] matched in CheckFromRules: ', sub[1],  this.ExpToString(sub[0]), '--> ( ', this.ExpToString(x), '<-',this.ExpToString(nrr),' )', nsub_fliptable)
-                }
-                //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
-                
+        //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
+        if(this.GetAllOperands(sub[0]).length == 0){
+            let oprvariancel = this.GetAllOperandsVariance(rl, src, tar)
+            for(const x of oprvariancel){
                 if(this.Check(x, sub, src, tar, debug)) return true
             }
-            if(this.MatchCv(rule[0], rule[1], sub, src, tar)) return true
-            // console.log()
+            let oprvariancr = this.GetAllOperandsVariance(rr, src, tar)
+            for(const x of oprvariancr){
+                if(this.Check(x, sub, src, tar, debug)) return true
+            }
+        }else{
+            let nrl = this.Operands_normalize_exps(this.cloneExp(rl), {})[0]
+            let nrr = this.Operands_normalize_exps(this.cloneExp(rr), {})[0]
+            let [nsub, nsub_table] = this.Operands_normalize_exps(this.cloneExp(sub[0]), {})
+            if(this.Same(nrl, nsub)){
+                let convertedrr = this.MatchOperands(nrr, nsub_table)
+                if(this.Check(convertedrr, sub, src, tar, debug)) return true
+            }
+            if(this.Same(nrr, nsub)){
+                let convertedrl = this.MatchOperands(nrl, nsub_table)
+                if(this.Check(convertedrl, sub, src, tar, debug)) return true
+            }
+        }
+        return false
+    }
 
-            return false
+    MatchOperands(src, table, debug = false){
+        let nsub_fliptable = this.flipKeyandValue({...table})
+        let norm = this.cloneExp(this.Operands_normalize_exps(this.cloneExp(src), table)[0])
+        let oringinal = this.cloneExp(this.Operands_normalize_exps(this.cloneExp(norm), nsub_fliptable)[0])
+        if(debug){
+            console.log('MatchOperands: ',his.ExpToString(src), '--> ', this.ExpToString(oringinal))
+        }
+        return oringinal
     }
 
     Check(normalized, sub, src, tar, debug = false){
@@ -644,12 +598,10 @@ class ProofAssistant {
         let all = []
         //go to last br 
         if(beginbr.index != -1){
-
             let [top, bot] = this.getTopBot(src, beginbr)
             let range = this.getBranchEnd(src, beginbr)
             let end = src.slice(range,src.length)
 
-            
             if((sub[1] > beginbr.index && sub[1] <= beginbr.index + top.length) 
                 || (sub[1] == beginbr.index+top.length+1 && sub[0].length == 0)
             ){
@@ -678,10 +630,6 @@ class ProofAssistant {
         else{
             //begin starts after all branch closed
             let n = this.substitute(normalized, [sub[0], sub[1]], src)
-            // console.log('!!!n: ', this.ExpToString(n), this.ExpToString(normalized), this.ExpToString(src),  sub[1])
-
-            //check if sub[0] is correctly captured
-            // if(this.Same(sub[0], ))
             all.push(n)
         }
         
@@ -690,25 +638,15 @@ class ProofAssistant {
 
     substitute(repl, tsub, src){
         let sub = tsub
-        // if(tsub[0] && tsub[0][0]){
-        //     if(tsub[0][0].operator == '#0'){
-        //         sub[0] = []
-        //     }
-        // }
         let srcbr = this.getFirstBr(src)
         let offset = srcbr.index
-        while(offset != -1 && sub[1] > offset){
-            offset += 1 
-            // console.log('here', srcbr.index, sub[1])
-            // srcbr.index += offset 
-        }
+        while(offset != -1 && sub[1] > offset) offset += 1 
+        
         if(offset != -1){
             srcbr.index += offset
             srcbr = this.getFirstBr(src.slice(offset, src.length))
-            // console.log('here', srcbr.index, sub[1])
         }
 
-        // console.log('f: ',srcbr)
         let subbrcheck = this.getFirstBr(sub[0])
         let begin = src.slice(0, sub[1])
 
