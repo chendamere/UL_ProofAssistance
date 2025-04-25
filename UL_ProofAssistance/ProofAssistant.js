@@ -7,7 +7,7 @@
 //for a proof to satisfy, there need to exist one or more equivalent expression.
 //there exist one or more equivalent expression if 
 
-import { error } from "console"
+import { error, table } from "console"
 
 class ProofAssistant {
     constructor (allrules, parser, Exps){
@@ -367,16 +367,14 @@ class ProofAssistant {
         // console.log('!!!', revelantAxioms.length)
 
         //we filter the axioms by having the same difference in length as the statement
-
-        for(const sub of subexps){
-            let sublen = sub[0].length == 0 ? 1 : sub[0].length
-            for(const rule of revelantAxioms){
-                // console.log('rule: ', this.RuleToString(rule))
-                //if sublen does not have same length as expressions in rule, then dismiss it
-                if(sublen == rule.leftexps.length || sublen == rule.rightexps.length || this.hasCV(rule.leftexps) || this.hasCV(rule.rightexps)){
-                    if(this.CheckFromRules(rule, sub, src, tar, debug)) return true
-                }
-                else continue
+        for(const rule of revelantAxioms){
+            if(this.hasCV(rule.leftexps) || this.hasCV(rule.rightexps)) {
+                if(this.MatchCv(rule.leftexps, rule.rightexps, src, tar)) return true
+            }
+            // console.log('rule: ', this.RuleToString(rule))
+            //if sublen does not have same length as expressions in rule, then dismiss it
+            for(const sub of subexps){
+                if(this.CheckFromRules(rule, sub, src, tar, debug)) return true
             }
         }
         return false
@@ -470,46 +468,32 @@ class ProofAssistant {
     }
     
 
-    MatchCv(rl, rr, sub, src, tar){
+    MatchCv(rl, rr, src, tar){
         //record sub operands, sub is not be normalized 
         let [trl,trr] = [this.cloneExp(rl), this.cloneExp(rr)]
-        let oprtable = {}
-        let tsub = this.Operands_normalize_exps(this.cloneExp(sub[0]),oprtable)[0]
-        oprtable = this.flipKeyandValue(oprtable)      
-        if(tsub.length == 0) tsub = this.genRule('!,@,').leftexps
         //check if has cv
-        if(this.hasCV(trl) || this.hasCV(trr)){            
-            //preparing cv values in rules
-            let rrl = this.genRule('!'+this.ExpToString(trl) + '@' + this.ExpToString(trl))
-            let rrr = this.genRule('!'+this.ExpToString(trr) + '@' + this.ExpToString(trr))
-            let rtsub = this.genRule('!'+this.ExpToString(tsub) + '@' + this.ExpToString(tsub))  
-            if(this.checkcv(rtsub,rrl)){                        
-                let cvtable = this.checkcv(rtsub, rrl, true)
-                trr = this.replacecv(cvtable,rrr).rightexps
-                trl = this.replacecv(cvtable,rrl).leftexps
+        if(this.hasCV(trl)){            
+            if(this.checkcv2(src, rl)){
+                if(this.checkcv2(tar, rr)){
+                    return true
+                }
             }
-            else if(this.checkcv(rtsub,rrr)){
-                let cvtable = this.checkcv(rtsub, rrr, true)
-                trr = this.replacecv(cvtable,rrr).rightexps
-                trl = this.replacecv(cvtable,rrl).leftexps
+        }
+        if(this.hasCV(trr)){
+            if(this.checkcv2(src, rr)){
+                if(this.checkcv2(tar, rl)){
+                    return true
+                }
             }
         }
 
-        if(this.Same(trl, tsub)){
-            //trr is assigned with sub's operands 
-            let normalized = this.Operands_normalize_exps(trr, oprtable)[0]
-            if(this.Check(normalized, sub, src, tar)){
-                return true 
-            }
-        }
+        // if(this.Same(trr, tsub)){
+        //     let normalized =this.Operands_normalize_exps(trl, oprtable)[0]
 
-        if(this.Same(trr, tsub)){
-            let normalized =this.Operands_normalize_exps(trl, oprtable)[0]
-
-            if(this.Check(normalized, sub, src, tar)){
-                return true 
-            }
-        }
+        //     if(this.Check(normalized, sub, src, tar)){
+        //         return true 
+        //     }
+        // }
         return false
     }
 
@@ -532,13 +516,13 @@ class ProofAssistant {
     }
 
     CheckFromRules(rule, sub, src, tar, debug = false, debugdata){
+        let sublen = sub[0].length == 0 ? 1 : sub[0].length
+
+        if(sublen != rule.leftexps.length && sublen != rule.rightexps.length) return false
 
         //it is a good idea to check operator equivalence before operands equivalenec
         let [rl,rr] = [rule.leftexps, rule.rightexps]
-        // console.log('matchcv start')
 
-        if(this.MatchCv(rl, rr, sub, src, tar)) return true
-        // console.log('matchcv finish')
         //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
         if(this.GetAllOperands(sub[0]).length == 0){
             let oprvariancel = this.GetAllOperandsVariance(rl, src, tar)
@@ -549,7 +533,7 @@ class ProofAssistant {
             for(const x of oprvariancr){
                 if(this.Check(x, sub, src, tar, debug)) return true
             }
-            console.log('GetAllOperandsVariance: ', this.ExpToString(sub[0]), oprvariancel.length, oprvariancr.length)
+            // console.log('GetAllOperandsVariance: ', this.ExpToString(sub[0]), oprvariancel.length, oprvariancr.length)
             if(oprvariancel.length > 40000){
                 console.log('too many variance: ', this.ExpToString(rr))
             }
@@ -1054,12 +1038,8 @@ class ProofAssistant {
         let i = 0
         while(exps[i]){
             let srcropt = exps[i] 
-            if(srcropt.Opparam){
-                if(srcropt.Opparam.length == 0 ){
-                    if(this.parser.cv == srcropt.operator){
-                        cvtable[srcropt.operands[0]] = ''
-                    }
-                }
+            if(this.parser.cv == srcropt.operator){
+                cvtable[srcropt.operands[0]] = ''
             }
             i += 1
         }
@@ -1079,6 +1059,19 @@ class ProofAssistant {
         return tcvtable
     }
 
+    replacecvexp2(cvtable, expsrc){
+        let exps = []
+        for(let i = 0 ; i< expsrc.length ; i ++){
+            if(expsrc[i].operator == this.parser.cv){
+                let subexp = cvtable[expsrc[i].operands[0]]
+                exps = exps.concat(subexp)
+            }else{
+                exps.push(expsrc[i])
+            }
+        }
+        return exps
+    }
+
     replacecvexp(cvtable, expsrc){
         let exps = this.cloneExp(expsrc)
         for(const exp of exps){
@@ -1096,6 +1089,136 @@ class ProofAssistant {
         retr.rightexps = this.replacecvexp(cvtable, retr.rightexps)
         return retr 
     }
+
+    //if true, then every constant operator appears in srcexp, which means 
+    CVTest(srcexp, tarexp){
+        let count = 0
+        //if rule is longer, then there is no matches that can make srcexp tarexp the same
+        if(tarexp.length > srcexp.length) return false 
+        for(let i =0; i<tarexp.length; i++){
+            if(tarexp[i].operator != this.parser.cv){
+                // console.log('!',srcexp.slice(i, srcexp.length))
+                if(!this.ExpToString(srcexp.slice(i, srcexp.length)).includes(' '+tarexp[i].operator.trim()+' ')){
+                    return false
+                }
+                if(tarexp[i].Opparam && tarexp[i].Opparam.length > 0){
+                    if(this.ExpToString(tarexp[i].Opparam[0]).trim().includes('#101') || this.ExpToString(tarexp[i].Opparam[0]).trim().includes('#102')){
+                        if(!srcexp.slice(i, srcexp.length).includes(' #100 ')){
+                            return false
+                        }
+                    }else if(!this.ExpToString(srcexp.slice(i, srcexp.length)).includes(' '+tarexp[i].Opparam[0].trim()+' ')){
+                        return false
+                    }
+                }
+                count += 1
+            }
+        }
+        return count
+    }
+
+    generateCombinations(len, sum) {
+        const result = [];
+    
+        function backtrack(current, remainingSum) {
+            if (current.length === len) {
+                if (remainingSum === 0) {
+                    result.push([...current]);
+                }
+                return;
+            }
+    
+            for (let i = 0; i <= remainingSum; i++) {
+                current.push(i);
+                backtrack(current, remainingSum - i);
+                current.pop();
+            }
+        }
+    
+        backtrack([], sum);
+        return result;
+    }
+
+    generateLowerCombinations(input) {
+        const result = [];
+    
+        function backtrack(current, index) {
+            if (index === input.length) {
+                result.push([...current]);
+                return;
+            }
+    
+            for (let i = 0; i < input[index]; i++) {
+                current.push(i);
+                backtrack(current, index + 1);
+                current.pop();
+            }
+        }
+    
+        backtrack([], 0);
+        return result;
+    }
+
+    FilterExpLen(listofsum, allsub){
+        let allfiltersub = []
+        for(const i of listofsum){
+            let samelensub = []
+            for(const sub of allsub){
+                if(sub[0].length == i ){
+                    samelensub.push(sub[0])
+                }
+            }
+            allfiltersub.push(samelensub)
+        }
+        return allfiltersub
+    }
+
+    ListOfLen(allfiltersub){
+        let listoflen = []
+        for(const sub of allfiltersub){
+            listoflen.push(sub.length)
+        }
+        return listoflen
+    }
+
+    CheckWithTable(allfiltersub, combs, cvtable, srcexp, tarexp){
+        let ret = []
+        for(const comb of combs){
+            let ttable = {...cvtable}
+            Object.keys(cvtable).forEach((key, index) => {
+                ttable[key] = allfiltersub[index][comb[index]]
+            })
+            let replsrc = this.replacecvexp2(ttable, tarexp)
+            // console.log('replsrc: ', this.ExpToString(replsrc))
+            if(this.Same(replsrc, srcexp)) return true
+        }
+        return false
+    }
+
+    checkcv2(srcexp, tarexp){
+        let firstcvcheck = this.CVTest(srcexp, tarexp)
+        if(!firstcvcheck) return false 
+        else{
+            let getsub = this.getsub(srcexp)
+            let allsub = this.sort_subexp(getsub[0].concat(getsub[1]))
+            let cvtable = this.getcv({},tarexp)
+            let tablelen = Object.keys(cvtable).length
+            let listofsum = this.generateCombinations(tablelen, srcexp.length - firstcvcheck)
+            // console.log('listofsum', listofsum, srcexp.length, firstcvcheck)
+            for(const l of listofsum){
+                let allfiltersub = this.FilterExpLen(l, allsub)
+                // console.log('allfiltersub: ', allfiltersub)
+                let listoflen = this.ListOfLen(allfiltersub)
+                // console.log('listoflen: ', listoflen)
+                let combs = this.generateLowerCombinations(listoflen)
+                // console.log('combs: ', combs)
+                let check = this.CheckWithTable(allfiltersub, combs, cvtable, srcexp,tarexp)
+                // console.log(check)
+                if(check) return true
+            }            
+        }
+        return false
+    }
+
     checkcv(srcr, tarr, getreplaced = false){
         let [sleft,sright] = [this.cloneExp(srcr.leftexps), this.cloneExp(srcr.rightexps)]
         let [tleft, tright] = [this.cloneExp(tarr.leftexps), this.cloneExp(tarr.rightexps)]

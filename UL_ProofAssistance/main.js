@@ -49,9 +49,17 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 //     console.log(pf.RuleToString(r))
 // }
 // ps.ProveChapter(0)
-// ps.ProveChapter(1)
+ps.ProveChapter(1)
 
-p()
+
+// console.log(pf.generateCombinations(0, 0))
+// console.log(pf.generateCombinations(5, 5))
+// console.log(pf.generateCombinations(4, 8))
+// let ind = latexparser.Parse('!, #11, #7 1 2, #4 1, #4 2, @ , #11, #13 1, #13 2, ')
+// let srcexp = ind.leftexps
+// let tarexp = ind.rightexps
+// console.log(pf.checkcv2(srcexp , tarexp ))
+// p()
 // CombineTest()
 // f()
 
