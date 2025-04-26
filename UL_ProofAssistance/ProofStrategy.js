@@ -51,7 +51,7 @@ export default class ProofStrategy {
         let tpexp = this.allexps[expindex]
         var expi = 0
         var stackindex=0
-        let debugging = false
+        let debugging = true
         
         while(expi < beginexps.length){
             console.log('--- Proof ', expi, ' begins ----')

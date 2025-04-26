@@ -49,7 +49,7 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 //     console.log(pf.RuleToString(r))
 // }
 // ps.ProveChapter(0)
-ps.ProveChapter(1)
+// ps.ProveChapter(1)
 
 
 // console.log(pf.generateCombinations(0, 0))
@@ -61,7 +61,7 @@ ps.ProveChapter(1)
 // console.log(pf.checkcv2(srcexp , tarexp ))
 // p()
 // CombineTest()
-// f()
+f()
 
 function CombineTest(){
     for(const test of indtests.slice(indtests.length-1, indtests.length)){
@@ -100,8 +100,13 @@ function f() {
         let allsub = s1.concat(s2)
         let subexps = pf.addEmpty(allsub)
         subexps = pf.sort_subexp(subexps)
-        for(const sub of subexps){
+        if(pf.hasCV(rule.leftexps) || pf.hasCV(rule.rightexps)){
+            let CvCheck = pf.MatchCv(rule.leftexps, rule.rightexps, ind.leftexps,ind.rightexps)
+            console.log(CvCheck)
 
+        }
+        for(const sub of subexps){
+            
             let ret = pf.CheckFromRules(rule, sub, ind.leftexps, ind.rightexps, true)
             if(ret){
                 console.log("ret: ", ret)

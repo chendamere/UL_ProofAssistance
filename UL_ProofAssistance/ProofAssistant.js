@@ -472,16 +472,24 @@ class ProofAssistant {
         //record sub operands, sub is not be normalized 
         let [trl,trr] = [this.cloneExp(rl), this.cloneExp(rr)]
         //check if has cv
-        if(this.hasCV(trl)){            
-            if(this.checkcv2(src, rl)){
-                if(this.checkcv2(tar, rr)){
+        if(this.hasCV(trl)){     
+            let table = this.checkcv2(src, rl)    
+            // console.log('table: ', table)   
+            if(table){
+                console.log('table: ', table)   
+
+                if(this.checkcv2(tar, rr, table)){
                     return true
                 }
             }
         }
         if(this.hasCV(trr)){
-            if(this.checkcv2(src, rr)){
-                if(this.checkcv2(tar, rl)){
+            let table = this.checkcv2(src, rr) 
+      
+            if(table){
+                console.log('table: ', table)   
+
+                if(this.checkcv2(tar, rl, table)){
                     return true
                 }
             }
@@ -803,6 +811,7 @@ class ProofAssistant {
     }
 
     getTopBot(exp, br){
+        if(br.top == 0 && br.bot == 0 ) return [[],[]] 
         if(br.index == -1) return [[],[]] 
         let topend = br.index + br.top
         let t = br.index +1
@@ -1061,12 +1070,37 @@ class ProofAssistant {
 
     replacecvexp2(cvtable, expsrc){
         let exps = []
+        let br
+        let top,bot
+        // console.log('replacecvexp2 --> expsrc: ', this.ExpToString(expsrc))
         for(let i = 0 ; i< expsrc.length ; i ++){
+            if(br){
+                if(i > this.getBranchEnd(expsrc, br)){
+                    br = br.prev
+                }
+            }
             if(expsrc[i].operator == this.parser.cv){
                 let subexp = cvtable[expsrc[i].operands[0]]
-                exps = exps.concat(subexp)
+                if(br){
+                    if(i < br.index+br.top+1){
+                        top = subexp
+                    }else if(i < br.index + br.top + br.bot +1){
+                        bot = subexp
+                    }
+                    exps = this.updateBr(exps,top,bot,br)
+                }else{
+                    exps = exps.concat(subexp)
+                }
             }else{
                 exps.push(expsrc[i])
+
+                if(this.isBranch(expsrc[i])){
+                    br = this.getFirstBr(expsrc.slice(i, i+1))
+                    br.index = i
+                    let topbot = this.getTopBot(expsrc,br)
+                    top = topbot[0]
+                    bot = topbot[1]
+                }
             }
         }
         return exps
@@ -1102,8 +1136,8 @@ class ProofAssistant {
                     return false
                 }
                 if(tarexp[i].Opparam && tarexp[i].Opparam.length > 0){
-                    if(this.ExpToString(tarexp[i].Opparam[0]).trim().includes('#101') || this.ExpToString(tarexp[i].Opparam[0]).trim().includes('#102')){
-                        if(!srcexp.slice(i, srcexp.length).includes(' #100 ')){
+                    if(tarexp[i].Opparam[0] == '#101' || tarexp[i].Opparam[0] == '#102'){
+                        if(!this.ExpToString(srcexp.slice(i, srcexp.length)).includes(' #100 ')){
                             return false
                         }
                     }else if(!this.ExpToString(srcexp.slice(i, srcexp.length)).includes(' '+tarexp[i].Opparam[0].trim()+' ')){
@@ -1180,42 +1214,69 @@ class ProofAssistant {
         return listoflen
     }
 
-    CheckWithTable(allfiltersub, combs, cvtable, srcexp, tarexp){
-        let ret = []
-        for(const comb of combs){
-            let ttable = {...cvtable}
-            Object.keys(cvtable).forEach((key, index) => {
-                ttable[key] = allfiltersub[index][comb[index]]
-            })
-            let replsrc = this.replacecvexp2(ttable, tarexp)
-            // console.log('replsrc: ', this.ExpToString(replsrc))
-            if(this.Same(replsrc, srcexp)) return true
+    CheckWithTable(srcexp, tarexp, cvtable, combs, allfiltersub){
+        if(combs && allfiltersub){
+            console.log('----------------')
+            console.log('srcexp: ', this.ExpToString(srcexp), 'tarexp: ', this.ExpToString(tarexp))
+            for(const comb of combs){
+                let ttable = {...cvtable}
+                Object.keys(cvtable).forEach((key, index) => {
+                    ttable[key] = allfiltersub[index][comb[index]]
+                })
+                let replsrc = this.replacecvexp2(ttable, tarexp)
+                // console.log('1replsrc: ', this.ExpToString(replsrc), ttable)
+                if(this.Same(replsrc, srcexp)) return ttable
+            }
+        }else{ 
+
+            // console.log(cvtable)
+            let replsrc = this.replacecvexp2(cvtable, tarexp)
+            console.log('2replsrc: ', this.ExpToString(replsrc))
+            if(this.Same(replsrc, srcexp)) return cvtable
         }
         return false
     }
 
-    checkcv2(srcexp, tarexp){
-        let firstcvcheck = this.CVTest(srcexp, tarexp)
-        if(!firstcvcheck) return false 
-        else{
-            let getsub = this.getsub(srcexp)
-            let allsub = this.sort_subexp(getsub[0].concat(getsub[1]))
-            let cvtable = this.getcv({},tarexp)
-            let tablelen = Object.keys(cvtable).length
-            let listofsum = this.generateCombinations(tablelen, srcexp.length - firstcvcheck)
-            // console.log('listofsum', listofsum, srcexp.length, firstcvcheck)
-            for(const l of listofsum){
-                let allfiltersub = this.FilterExpLen(l, allsub)
-                // console.log('allfiltersub: ', allfiltersub)
-                let listoflen = this.ListOfLen(allfiltersub)
-                // console.log('listoflen: ', listoflen)
-                let combs = this.generateLowerCombinations(listoflen)
-                // console.log('combs: ', combs)
-                let check = this.CheckWithTable(allfiltersub, combs, cvtable, srcexp,tarexp)
-                // console.log(check)
-                if(check) return true
-            }            
+    checkcv2(srcexp, tarexp, table){
+        if(!table){
+            let firstcvcheck = this.CVTest(srcexp, tarexp)
+            // console.log('firstcheck: ', firstcvcheck)
+
+            if(!firstcvcheck) return false 
+            else{
+                let getsub = this.getsub(srcexp)
+                let allsub = this.sort_subexp(getsub[0].concat(getsub[1]))
+                // console.log('allsub: ', allsub)
+                
+
+                let cvtable = this.getcv({},tarexp)
+                let tablelen = Object.keys(cvtable).length
+                let listofsum = this.generateCombinations(tablelen, srcexp.length - firstcvcheck)
+                // console.log('listofsum', listofsum, srcexp.length)
+                for(const l of listofsum){
+                    
+                    let allfiltersub = this.FilterExpLen(l, allsub)
+                    // for(const x of allfiltersub){
+                    //     console.log('   ', this.ExpToString(x[0]))
+                    // }
+                    // console.log('allfiltersub: ', allfiltersub)
+                    let listoflen = this.ListOfLen(allfiltersub)
+                    // console.log('listoflen: ', listoflen)
+                    let combs = this.generateLowerCombinations(listoflen)
+                    // console.log('combs: ', combs)
+                    let rettable = this.CheckWithTable(srcexp, tarexp, cvtable, combs, allfiltersub)
+                    // console.log(check)
+                    if(rettable) return rettable
+                }            
+            }
+        }else{
+            // console.log('table: ', table)
+            // console.log('srcexp: ', this.ExpToString(srcexp), )
+            // console.log('tarexp: ', this.ExpToString(tarexp), )
+            let rettable = this.CheckWithTable(srcexp, tarexp, table)
+            if(rettable) return rettable
         }
+        
         return false
     }
 
