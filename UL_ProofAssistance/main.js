@@ -62,6 +62,7 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // p()
 // CombineTest()
 f()
+// console.log(pf.generateLowerCombinations([2,2,2]))
 
 function CombineTest(){
     for(const test of indtests.slice(indtests.length-1, indtests.length)){
