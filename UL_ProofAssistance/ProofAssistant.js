@@ -1097,11 +1097,11 @@ class ProofAssistant {
 
             if(expsrc[i].operator == this.parser.cv){
                 let subexp = cvtable[expsrc[i].operands[0]]
-                if(br){
+                if(br.index != -1){
                     if(i <= br.index+br.top){
-                        exps[br.index].Opparam[1] = '$'+ (parseInt(exps[br.index].Opparam[1][1]) + this.ExpressionLength(subexp)).toString()
+                        exps[br.index].Opparam[1] = '$'+ (parseInt(exps[br.index].Opparam[1][1]) + this.ExpressionLength(subexp)-1).toString()
                     }else if( i > br.index + br.top && i <= br.index + br.top + br.bot){
-                        exps[br.index].Opparam[2] = '$'+ (parseInt(exps[br.index].Opparam[2][1]) + this.ExpressionLength(subexp)).toString()
+                        exps[br.index].Opparam[2] = '$'+ (parseInt(exps[br.index].Opparam[2][1]) + this.ExpressionLength(subexp)-1).toString()
                     }
                 }
                 exps = exps.concat(subexp)
@@ -1226,35 +1226,66 @@ class ProofAssistant {
         return listoflen
     }
 
-    CheckWithTable(srcexp, tarexp, cvtable, combs, allfiltersub){
+    CheckWithTable(srcexp, tarexp, table, combs, allfiltersub){
+        
         if(combs && allfiltersub){
             console.log('----------------')
-            console.log('srcexp: ', this.ExpToString(srcexp), 'tarexp: ', this.ExpToString(tarexp), cvtable)
+            console.log('srcexp: ', this.ExpToString(srcexp), 'tarexp: ', this.ExpToString(tarexp), table)
 
-
+            let cvPosition = this.getCvPositions(tarexp)
             for(const comb of combs){
-                let ttable = {...cvtable}
-                Object.keys(cvtable).forEach((key, index) => {
-                    console.log('allfiltersub[index][comb[index]]: ',this.ExpToString(allfiltersub[index][comb[index]]))
-                    ttable[key] = allfiltersub[index][comb[index]]
-                })
-                let replsrc = this.replacecvexp2(ttable, this.cloneExp(tarexp))
-                // console.log('1replsrc: ', this.ExpToString(replsrc), ttable)
-                if(this.Same(replsrc, srcexp)) return ttable
-            }
-            
+                // console.log('   comb: ', comb)
+                let ttable = {... table}
+                for(let i = 0; i < cvPosition.length; i ++ ){
+                    // console.log('       cvPosition[i]:', cvPosition[i])
 
+                    for(const len of comb){
+                        // console.log('           len:', len)
+
+                        for(const sub of allfiltersub){
+                            if(sub[0].length === len && sub[1] === cvPosition[i][1]){
+                                ttable[cvPosition[i][0]] = this.cloneExp(sub[0])
+                                continue
+                            }
+                        }
+                    }
+                }
+                let repltar = this.replacecvexp2(ttable, this.cloneExp(tarexp))
+                console.log('repltar: ', this.ExpToString(replsrc), ttable)
+                //what if we check if replsrc is the same as any subexpression in srccexp
+                //allfiltersub is meant to extract all target of cv, so we need to search in all subexpression
+                //what if after replacing the cv, and replctar is a subexpression of srcexp, and the same is 
+                //true for the other side of expression, and the subexpressions are at the same index, but the rest of the 
+                // subexpression are no the same?
+
+                //the straightforward way is to 
+                if(this.Same(repltar, srcexp)) return ttable
+            }
         }else{ 
 
             // console.log(cvtable)
             
-            let replsrc = this.replacecvexp2(cvtable, this.cloneExp(tarexp))
+            let repltar = this.replacecvexp2(table, this.cloneExp(tarexp))
             // console.log('2replsrc: ', this.ExpToString(replsrc))
-            if(this.Same(replsrc, srcexp)) return cvtable
+            if(this.Same(repltar, srcexp)) return table
         }
         return false
     }
 
+    getCvPositions(exps){
+        let seen = new Set();
+        let ret = []
+        for(let i = 0; i < exps.length; i ++){
+            const char = exps[i].operator
+            if(char == this.parser.cv){
+                if(!seen.has(char)){
+                    ret.push([exps[i].operands[0], i])
+                    seen.add(char)
+                }
+            }
+        }
+        return ret 
+    }
     checkcv2(srcexp, tarexp, table){
         if(!table){
             let firstcvcheck = this.CVTest(srcexp, tarexp)
@@ -1263,25 +1294,15 @@ class ProofAssistant {
             else{
                 let getsub = this.getsub(srcexp)
                 let allsub = this.sort_subexp(getsub[0].concat(getsub[1]))                
-                let cvtable = this.getcv({},tarexp)
-                let tablelen = Object.keys(cvtable).length
+                let tablelen = Object.keys(this.getcv({},tarexp)).length
 
                 //list of sum gets all combinations for based on lengths given 
                 let listofsum = this.generateCombinations(tablelen, srcexp.length - firstcvcheck)
-
-                //filter sub based on lengths 
+                let lowercomb = this.generateLowerCombinations(listofsum)
                 let allfiltersub = this.FilterExpLen(srcexp.length - firstcvcheck, allsub)
-                // for(const sub of allfiltersub){
-                //     console.log(sub[1], this.ExpToString(sub[0]))
-                // }
-                //get list of lists of subs from allfiltersub based on lengths
 
-                //
-
-                for(const comb of listofsum){
-                    let rettable = this.CheckWithTable(srcexp, tarexp, cvtable, comb, allfiltersub)
-                    if(rettable) return rettable
-                }            
+                let rettable = this.CheckWithTable(srcexp, tarexp, this.getcv({},tarexp), lowercomb, allfiltersub)
+                if(rettable) return rettable
             }
         }else{
 
