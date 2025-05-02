@@ -1,3 +1,4 @@
+import { stat } from "fs"
 
 export default class ProofStrategy {
     constructor(pf, tstatements, allexps){
@@ -64,10 +65,14 @@ export default class ProofStrategy {
             console.log('tar rule: ', this.pf.RuleToString(newrule))
 
             //check if statement is already a rule
-            if(this.pf.isRule(newrule)){
+            console.log('--CHECKING IF STATEMENT IS A RULE OR MATCHCV--')
+
+            // let statement = this.pf.genRule('!'+p+'@'+q)
+            if(this.pf.Proving(p, q, true) == 1){
                 this.expstack[this.expstack.length-1].push(q)
                 expi += 1
-                console.log('finished proof in ProveAll -> isrule!', this.pf.RuleToString(newrule))
+                console.log('finished proof in ProveAll -> this.Proving!', this.pf.RuleToString(newrule))
+                console.log()
                 continue
             }
 
@@ -75,15 +80,19 @@ export default class ProofStrategy {
             // console.log( tpexp.length, this.expstack.length)
             // console.log(tpexp[expi].length)
 
+            console.log('--BEGIN PROVING FROM USER PROVIDED EXPRESSION--')
+
             let ret = this.proveExps(tpexp[expi], p, q, debugging)
             // console.log(ret.length)
             if(ret != -1){
                 
                 this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret)
                 this.pf.allrules.push(newrule)
-                console.log(this.expstack[this.expstack.length-1])
-                console.log('finished proof in ProveAll -> proveExps!', this.pf.RuleToString(newrule))
                 expi += 1
+
+                // console.log(this.expstack[this.expstack.length-1])
+                console.log('finished proof in ProveAll -> proveExps!', this.pf.RuleToString(newrule))
+                console.log()
                 continue
             }
             
@@ -91,7 +100,7 @@ export default class ProofStrategy {
             // assuming that operators have similar definition and axiom, similar looking proof will have similar proof step
             // similar defined as same operands when normalized, and same expression when all operators are substituted
             
-            console.log('proveExp failed, trying provefromstack')
+            console.log('--BEGIN PROVING FROM STACK--')
             ret = this.provefromstack(expi+this.expioffset, p, q, stackindex, debugging)
             if(ret != -1){
                 this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret[0])
@@ -107,52 +116,56 @@ export default class ProofStrategy {
         }
     }
 
-    matchAndCheckExp(start, end, debug = false){
-        let begincheck = this.pf.genRule('!'+start+'@'+end)
-        let r1variant = this.pf.try_match_operand_order(begincheck)
-        for(const v of r1variant){
-            // console.log('here')
+    matchAndCheckExp(exps, end, debug = false){
+        let ret = []
+        // console.log(exps)
+        let endchecks = this.pf.genRule('!'+exps[exps.length-1]+'@'+end)
+        const nl = this.pf.Operands_normalize_exps(this.pf.cloneExp(endchecks.leftexps), {})[0]
+        const [nr, nrt] = this.pf.Operands_normalize_exps(this.pf.cloneExp(endchecks.rightexps), {})
+        // console.log(this.pf.ExpToString(nl),' =? ',this.pf.ExpToString(nr))
 
-            if(this.pf.Proving(this.pf.ExpToString(v.leftexps), this.pf.ExpToString(v.rightexps), debug) == 1){
-                return this.pf.ExpToString(v.rightexps)
+        if(this.pf.Same(nl, nr)){
+            let table = {...nrt}
+            for(const exp of exps){
+                let rexp = this.pf.cloneExp(this.pf.genRule('!,@,'+exp).rightexps)
+                let nexp = this.pf.ExpToString(this.pf.Operands_normalize_exps(rexp, table)[0])
+                ret.push(nexp)
             }
+            
+            return ret
         }
-        // return this.pf.Proving(start, end, debug) == 1 
+
+        
         return false
     }
     proveExps(exps, start, end, debug=false) { 
         // console.log('stop1')
 
         if(exps.length == 0){return -1}
-        let i = 0
+
+        const cexps = this.matchAndCheckExp(exps, end, debug)
         let prev=start;
         let next;
-        let ret = []
-        //makes sure end expressions match
-        // console.log(end, exps[exps.length-1])
-        // console.log('stop')
+        let i = 0
 
-        if(!this.matchAndCheckExp(end, exps[exps.length-1])) return -1
-        // console.log('here')
-        // if(end.includes(', #100 $1 $1 #15 3 4 , #100 $1 $1 #15 1 2 , #13 5 , #13 7 , #100 $1 $1 #15 1 2 , #13 6 , #13 8 ,'))
-        
-        // console.log('here')
-
-        
-        while(exps[i]){
-            next = exps[i]
-            let check = this.matchAndCheckExp(prev, next, debug)
-            if(check){
-                prev = check    
-                ret.push(prev)   
-                i+=1
+        if(cexps){
+            while(cexps[i]){
+                next = cexps[i]
+                let check = this.pf.Proving(prev, next, true)
+                if(check){
+                    prev = next    
+                    i+=1
+                }
+                else{
+                    return -1
+                }
             }
-            else{
-                return -1
-            }    
+            if(i == cexps.length){
+                return cexps
+            }
         }
         // console.log('ret: ', ret)
-        return ret
+        return -1
     }
 
     proveReduceOprExps(tstack, p, q, debug){
@@ -198,10 +211,6 @@ export default class ProofStrategy {
                 }
             }
             let ret= this.proveExps(tstack,p, q,debug)
-            if(ret != -1){
-                return [tstack, i]
-            }
-            ret = this.proveReduceOprExps(tstack, p, q, debug)
             if(ret != -1){
                 return [tstack, i]
             }

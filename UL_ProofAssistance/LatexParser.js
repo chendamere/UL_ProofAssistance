@@ -90,9 +90,19 @@ class Parser {
     GetBranch(){
         return this.branch
     }
+    GetUnaryOperators(){
+        return this.unaryOperators
+    }
+    GetBinaryOperatorsOperators(){
+        return this.binaryOperators
+    }
 }
 
 class LatexParser extends Parser {
+    constructor()
+    {
+        super()
+    }
 
     ParseFile = (folder, Filereader, file, flag) => {
         const source = Filereader(folder + '/'+file, {encoding: "utf8"})
