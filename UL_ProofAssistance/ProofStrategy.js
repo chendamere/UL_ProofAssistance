@@ -81,9 +81,9 @@ export default class ProofStrategy {
             // console.log(tpexp[expi].length)
 
             console.log('--BEGIN PROVING FROM USER PROVIDED EXPRESSION--')
+            // console.log(tpexp[expi].length)
 
             let ret = this.proveExps(tpexp[expi], p, q, debugging)
-            // console.log(ret.length)
             if(ret != -1){
                 
                 this.expstack[this.expstack.length-1] = this.expstack[this.expstack.length-1].concat(ret)
@@ -144,6 +144,7 @@ export default class ProofStrategy {
         if(exps.length == 0){return -1}
 
         const cexps = this.matchAndCheckExp(exps, end, debug)
+        console.log(cexps)
         let prev=start;
         let next;
         let i = 0

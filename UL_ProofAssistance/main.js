@@ -21,9 +21,12 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // for(const r of assumedAxiom){
 //     console.log(pf.RuleToString(r))
 // }
-ps.ProveChapter(0)
-// ps.ProveChapter(1)
+// ps.ProveChapter(0)
+ps.ProveChapter(1)
 
+// let test = latexparser.Parse('!, #11 , @ , #3 2, ')
+// console.log(pf.ExpToString(test.leftexps), pf.ExpToString(test.rightexps))
+// console.log(pf.Same(test.leftexps, test.rightexps))
 
 // console.log(pf.generateCombinations(0, 0))
 // console.log(pf.generateCombinations(5, 5))

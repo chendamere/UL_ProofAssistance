@@ -436,7 +436,7 @@ class ProofAssistant {
     
 
     getCVsub(src, tar, srcsubs,tarsubs){
-        
+        // console.log('getCVsub: ', this.ExpToString(src))
         let ind3lists = []
         for(const srcsub of srcsubs){
             for(const tarsub of tarsubs){
@@ -449,7 +449,10 @@ class ProofAssistant {
                     let srcsrest, tarrest
 
                     if(srcbr.index != -1 && tarbr.index != -1){
-                        [srcsrest, tarrest] = [this.getRest(src,srcsub[0]), this.getRest(tar, tarsub[0])]
+                        // console.log('!: ', this.ExpToString(src), 'sub[0]: ', this.ExpToString(srcsub[0]))
+                        srcsrest = this.getRest(this.cloneExp(src),srcsub[0])
+                        tarrest = this.getRest(this.cloneExp(tar), tarsub[0])
+                        // [srcsrest, tarrest] = [this.getRest(src,srcsub[0]), this.getRest(tar, tarsub[0])]
                     }
                     else{
                         [srcsrest, tarrest] = [src.slice(srcsub[1]+srcsub[0].length, src.length), tar.slice(tarsub[1]+tarsub[0].length, tar.length)]
@@ -468,11 +471,8 @@ class ProofAssistant {
         //record sub operands, sub is not be normalized 
         let [trl,trr] = [this.cloneExp(rl), this.cloneExp(rr)]
 
-        let filteredpair = this.getCVsub(src,tar,srcsub,tarsub)
-
-        // for(const par of filteredpair){
-        //     console.log('   ', par[0][1],this.ExpToString(par[0][0]),'<>',par[1][1], this.ExpToString(par[1][0]))
-        // }           
+        //filter subexpressions based on sub index, length, and sameneess of beggining and rest
+        let filteredpair = this.getCVsub(src,tar,srcsub,tarsub)        
 
         //list of sum gets all combinations for based on lengths given 
 
@@ -491,9 +491,10 @@ class ProofAssistant {
             if(this.hasCV(trr)){     
                 let table = this.checkcv2(srcsub,pairofsub[0][0], rr)    
                 if(table){
-                    console.log(table)
 
                     if(this.checkcv2(srcsub, pairofsub[1][0], rl, table)){
+                        console.log('! ', this.ExpToString(rl),' = ', this.ExpToString(pairofsub[1][0]), table)
+
                         return true
                     }
                 }
@@ -717,6 +718,7 @@ class ProofAssistant {
         let subbr = this.getFirstBr(sub)
         let expbr = this.getFirstBr(exp)
         if(subbr.index != -1 && expbr.index != -1){
+            // console.log(this.ExpToString(exp), this.ExpToString(sub),getback)
             let [subtop, subbot] = this.getTopBot(sub, subbr)
             let [exptop, expbot] = this.getTopBot(exp, expbr)
             if((expbr.br == '#101'|| expbr.br =='#100') && (subbr.br == '#101'|| subbr.br =='#100')){
@@ -728,9 +730,10 @@ class ProofAssistant {
                 let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr2).concat(endtrim)
                 if(expbr.br == '#100' && subbr.br == '#101'){
                     //if exp contains #100, and subbr is #101, then the rest expression contains #102
-                    ret[subbr.index].Opparam[0] = '#102'
-                    ret[subbr.index].operator = null
-                    ret[subbr.index].operands = []
+                    // console.log(ret, subbr.index)
+                    ret[subbr2.index].Opparam[0] = '#102'
+                    ret[subbr2.index].operator = null
+                    ret[subbr2.index].operands = []
                     return ret
                 }
                 else if(toprest.length == 0 && botrest.length == 0) return endtrim
@@ -1065,7 +1068,11 @@ class ProofAssistant {
             }
 
             if(expsrc[i].operator == this.parser.cv){
-                let subexp = cvtable[expsrc[i].operands[0]]
+                let subexp = []
+                if( cvtable[expsrc[i].operands[0]]){
+                    subexp = cvtable[expsrc[i].operands[0]]
+
+                }
                 if(br.index != -1 && i > br.index){
                     let newlen = this.ExpressionLength(subexp)-1
                     offset += subexp.length -1
@@ -1196,7 +1203,7 @@ class ProofAssistant {
         let i = 0
         while(i < src.length) {
             
-            if(src[i].Opparam && tar[i].Opparam){
+            if(src[i].Opparam && tar[i].Opparam && src[i].Opparam.length !=0 && tar[i].Opparam.length != 0){
                 let srcbranch = src[i].Opparam[0]
                 let tarbranch = tar[i].Opparam[0]
                 if(srcbranch != tarbranch){
@@ -1205,7 +1212,9 @@ class ProofAssistant {
                     }
                 }
             }else{
-                if(! this.Same([src[i]], [tar[i]])){
+                if(!this.Same([src[i]], [tar[i]])){
+                    // console.log('   !!! Same:', this.ExpToString([src[i]], [tar[i]]))
+
                     return false
                 }
             }
@@ -1236,6 +1245,9 @@ class ProofAssistant {
                         // console.log('           len:', len)
 
                         //for every filtered sub
+
+                        //filtered sub might not capture all forms of branch expressions
+                        //because multiple br expression of the same length can appear at the same index
                         for(const sub of allfiltersub){
                             //if length matches the length required, and if index matches subexp index
                             if(sub[0].length === len && sub[1] === cvPosition[i][1]){
@@ -1246,14 +1258,16 @@ class ProofAssistant {
                     }
                 }
                 let repltar = this.replacecvexp2(ttable, this.cloneExp(tarexp))
-                // console.log('repltar: ', this.ExpToString(repltar), ttable, this.ObrMatchCbr(repltar, srcexp))
                 //what if we check if replsrc is the same as any subexpression in srccexp
                 //allfiltersub is meant to extract all target of cv, so we need to search in all subexpression
                 //what if after replacing the cv, and replctar is a subexpression of srcexp, and the same is 
                 //true for the other side of expression, and the subexpressions are at the same index, but the rest of the 
                 // subexpression are no the same?
 
-                if(this.ObrMatchCbr(repltar, srcexp)) return ttable
+                if(this.ObrMatchCbr(repltar, srcexp)){
+                    // console.log('repltar: ', this.ExpToString(repltar), this.ExpToString(srcexp),ttable, this.ObrMatchCbr(repltar, srcexp))
+                    return ttable
+                } 
             }
         }else{ 
 
@@ -1288,6 +1302,9 @@ class ProofAssistant {
 
         if(!table){
             let rettable = this.CheckWithTable(srcexp, tarexp, this.getcv({},tarexp), listofsum, allfiltersub)
+            // if(rettable){
+            //     console.log('!!! rettable:   ', rettable)
+            // }
             if(rettable) return rettable
         }else{
             let rettable = this.CheckWithTable(srcexp, tarexp, table)
