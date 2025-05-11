@@ -26,7 +26,6 @@ class Fileparser{
             let chapter = this.parser.ParseFile( './theorems/', fs.readFileSync, file, false)
             let exps = this.parser.trimExps(this.parser.ParseFile( './theorems/', fs.readFileSync, file, true))
             for(const e of exps){
-                // console.log(e)
                 let temp =[]
                 for(const exp of e) {
                     temp.push(exp.trim())

@@ -96,6 +96,30 @@ class Parser {
     GetBinaryOperatorsOperators(){
         return this.binaryOperators
     }
+    ExpToString(exps) {
+        let ret = ', '
+        if(!exps) return ret
+        for (const exp of exps){
+            
+            if(exp.Opparam && exp.Opparam.length != 0){
+                ret += exp.Opparam[0] + ' ' + exp.Opparam[1] +  ' ' +  exp.Opparam[2] + ' '
+            }
+            if(exp.operator  && exp.operator != ''){
+                if(exp.operator == '@') continue
+                ret += exp.operator + ' '
+            }
+            if(exp.operands && exp.operands.length > 0){
+                for(const opr of exp.operands){
+                    if(opr !== undefined) {
+                        ret += opr + ' '
+                    }
+                }
+            }
+            if(exp != '')
+                ret += ', '
+        }
+        return ret
+    }
 }
 
 class LatexParser extends Parser {
@@ -208,6 +232,7 @@ class LatexParser extends Parser {
         let r = false
         let exps = []
         let parse = false
+        let table = {}
     
         for (const line of lines){
             
@@ -225,6 +250,8 @@ class LatexParser extends Parser {
                 all_exps.push(exps)
                 exps=[]
                 r=false
+                table = {}
+
                 continue
             }
 
@@ -245,8 +272,11 @@ class LatexParser extends Parser {
                 continue 
             }
 
-            if(!parse) continue;
-
+            if(!parse) {
+                // table = {}
+                continue;
+            
+            }
             if(line.includes('\[') && r){
                 all_exps.push([])
             }
@@ -258,7 +288,7 @@ class LatexParser extends Parser {
             }
     
             //normalize rule
-            let exp = this.expsNormalize(nline)
+            let exp = this.expsNormalize(nline, table)
 
             if(exp.trim() == '') continue
             else{
@@ -302,7 +332,7 @@ class LatexParser extends Parser {
 
         return ret
     }
-    expsNormalize = (line) => {
+    expsNormalize = (line, table) => {
         let ret = line
         
         if(!ret.includes('@')){
@@ -313,7 +343,7 @@ class LatexParser extends Parser {
         }
         ret = this.Convert_branch_expressions(ret)
         ret = this.Reorder_operations(ret).trim()
-        ret = this.Operands_numbering(ret)
+        ret = this.Operands_numbering(ret, table)
         ret = ret.trim()
         return ret
     }
@@ -342,12 +372,12 @@ class LatexParser extends Parser {
         return '';
     }
 
-    Operands_numbering = (line) => {
+    Operands_numbering = (line, table={}) => {
 
         //look for char and & start
         const start = /[a-zA-Z&]/;
         let opr = ''
-        let operand = {}
+        let operand = table
         let order = 1
         let i = 0
         let ret = line

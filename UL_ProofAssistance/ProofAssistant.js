@@ -38,27 +38,7 @@ class ProofAssistant {
         return -1
     }
     
-
-    isBranch(opt){
-        if(opt.Opparam){
-            if(opt.Opparam[0]){
-                return true
-            }
-        }
-        return false 
-    }
-
-    cloneExp(exp){
-        let ret = this.genRule('!,@,'+this.ExpToString(exp)).rightexps
-        if(ret[0].operator == '#0') return []
-        return ret
-    }
-
-    deepClone(arr) {
-        return arr.map(innerArr => innerArr.slice());
-    }
-
-    // does not work with branch expression
+    // -- Trimmer --
     trimfront(exp, k=0){
         let i = 0
         let ret = []
@@ -72,7 +52,7 @@ class ProofAssistant {
         let i = 0
         let ret = []
         while(i < exp.length){
-            let checkbr = this.getFirstBr(exp)
+            let checkbr = this.getBr(exp)
             if(checkbr.index == i){
                 i = this.getBranchEnd(exp,checkbr)
                 continue
@@ -90,19 +70,19 @@ class ProofAssistant {
         let sub = []
         let check 
         while(exp[i]){
-            let checkbr = this.getLastBr(exp.slice(0,i+1))
+            let checkbr = this.getBr(exp.slice(0,i+1), false)
 
             if(checkbr.index == i){
                 check = checkbr
 
                 let range = this.getBranchEnd(exp,checkbr)
                 let branchexp = this.cloneExp(exp.slice(i, range))
-                let br = this.getFirstBr(branchexp)
+                let br = this.getBr(branchexp)
                 let [topexp, botexp] = this.getTopBot(branchexp,br)
                 let trimbackt = this.trimbranchfront(topexp, k+i+1)
                 let trimbackb = this.trimbranchfront(botexp, k+i+1 + topexp.length)
-                let topbr = this.getFirstBr(topexp)
-                let botbr = this.getFirstBr(botexp)
+                let topbr = this.getBr(topexp)
+                let botbr = this.getBr(botexp)
                 sub = sub.concat(trimbackt[1])
                 sub = sub.concat(trimbackb[1])
 
@@ -153,13 +133,13 @@ class ProofAssistant {
         let sub = []
         let check
         while(i >= 0){
-            let checkbr = this.getLastBr(exp.slice(0,i+1))
+            let checkbr = this.getBr(exp.slice(0,i+1), false)
             let range = this.getBranchEnd(exp,checkbr)
             if(checkbr.index <= i && i < range && checkbr.index != -1){
                 //prepare top and bototm expression, get br operation, and recursive step
                 check = checkbr
                 let branchexp = this.cloneExp(exp.slice(checkbr.index, range))
-                let br = this.getFirstBr(branchexp)
+                let br = this.getBr(branchexp)
                 let [topexp, botexp] = this.getTopBot(branchexp,br)
 
                 let trimbackt = this.trimbranchback(topexp, checkbr.index + k + 1)
@@ -168,8 +148,8 @@ class ProofAssistant {
                 //check if this was the last branch (no next br), if we are in the last then add
                 //top and bot sub, which contains trimback of the highest dimension expressions
                 //if top or bot has branch, then add its branch variants as sub exp as well
-                let topbr = this.getFirstBr(topexp)
-                let botbr = this.getFirstBr(botexp)
+                let topbr = this.getBr(topexp)
+                let botbr = this.getBr(botexp)
                 sub = sub.concat(trimbackt[1])
                 sub = sub.concat(trimbackb[1])
 
@@ -202,9 +182,6 @@ class ProofAssistant {
                 }
                 i = checkbr.index-1
                 //pushing identity
-
-                // console.log('exp: ', this.ExpToString(exp), 'checkbr: ', checkbr)
-
                 if(checkbr.br == '#100'){
                     branchexp[0].Opparam[0] = '#100'
                     branchexp[0].operator = tempoperator
@@ -242,47 +219,82 @@ class ProofAssistant {
         let sublist = []
         let check
         while(i < exp.length){
+            console.log(i)
             let sub = exp.slice(i,exp.length)
-            let checkbr = this.getFirstBr(sub)
+            let checkbr = this.getBr(sub)
             if(checkbr.index != -1){
                 check = checkbr
                 let bend = this.getBranchEnd(sub, checkbr)
-                let front = exp.slice(i, checkbr.index)
+                let front = exp.slice(i, checkbr.index+i)
                 let brexp = sub.slice(checkbr.index, bend) 
                 let subf = this.trimback(front).concat([[[],checkbr.index]])
                 let brsubf = this.trimbranchfront(brexp, checkbr.index)
                 for(const x of subf){
                     for(const y of brsubf[0]){
-                        ret.push([x[0].concat(y[0]), x[1]])
+                        ret.push([x[0].concat(y[0]), x[1]+i])
                     }
                 }
 
                 i += bend
-                let nextbr = this.getFirstBr(exp.slice(i, exp.length))
+                let nextbr = this.getBr(exp.slice(i, exp.length))
                 let endi = nextbr.index == -1 ? exp.length : i + nextbr.index
 
-                let back = exp.slice(i, endi)
+                let back = exp.slice(i, endi)                    
                 let subb = [[[],checkbr.index]].concat(this.trimfront(back))
                 let brsubb = this.trimbranchback(brexp, checkbr.index)
 
                 for(const x of brsubb[0]){
                     for (const y of subb){
-                        ret.push([x[0].concat(y[0]), x[1]])
+                        ret.push([x[0].concat(y[0]), x[1]+i-bend])
                     }
                 }
                
-                
-                sublist = sublist.concat(brsubf[1]).concat(brsubb[1])
+                for(const x of brsubf[1]){
+                    sublist.push([x[0], x[1] + i -bend])
+                }
+                for(const x of brsubb[1]){
+                    sublist.push([x[0], x[1] + i -bend])
+                }
+                // sublist = sublist.concat(brsubf[1]).concat(brsubb[1])
                 sublist = sublist.concat(this.getsubnorm(front, i-bend)).concat(this.getsubnorm(back, i))
             }
             else{
                 i += 1
             }
+
         }
         if(!check){
             ret=ret.concat(this.getsubnorm(exp))
         }
+        if(check){
+            let comb = this.getbranchsubcomb(ret)
+            ret = ret.concat(comb)
+        }
         return [ret, sublist]
+    }
+
+    getbranchsubcomb(list){
+        let ret = []
+        for(const sub1 of list){
+            // console.log(this.ExpToString(sub1[0]))
+            let sub1br = this.getBr(sub1[0])
+            if(sub1br.index != -1 && sub1br.br != '#101'){
+                for(const sub2 of list){
+                    // console.log(this.ExpToString(sub2[0]))
+
+                    let sub2br = this.getBr(sub2[0])
+                    if(sub2br.index != -1 && sub2br.br != '#102'){
+
+                        if(sub2[1]+ sub2br.index > sub1[1] + sub1br.index){
+                            // console.log(sub1[1],sub2[1],this.ExpToString(sub1[0]))
+
+                            ret.push([sub1[0].concat(sub2[0]), sub1[1]])
+                        }
+                    }
+                }
+            }
+        }
+        return ret 
     }
 
     hasCV(exps){
@@ -308,7 +320,6 @@ class ProofAssistant {
 
             if(typeof filter === 'number'){
                 let rdiff = Math.abs(leftlen - rightlen)
-                // console.log(rdiff)
                 if(rdiff == filter) ret.push(r)
             }
             else if(typeof filter === 'string'){
@@ -322,22 +333,30 @@ class ProofAssistant {
 
     MatchandCheck(src, tar,debug =false){
         // this.PrintAllRules()
-        let srcsubs = this.getsub(src)
+        let nsrc = src
+        if(this.ExpToString(src).includes(' #0 ') && src.length == 1){
+            nsrc = []
+        }
+        let srcsubs = this.getsub(nsrc)
         let srcexps = srcsubs[0].concat(srcsubs[1])
         let srcexpsnonil = [...srcexps]
 
         let tarsubs = this.getsub(tar)
-        let tarexps = tarsubs[0].concat(tarsubs[1])
 
         srcexps = this.addEmpty(srcexps)
-        srcexps = this.sort_subexp(srcexps)
+        // srcexps = this.sort_subexp(srcexps)
 
-        let lendiff = Math.abs(src.length - tar.length)
+        let lendiff = Math.abs(nsrc.length - tar.length)
         let lenRules = this.FilterAxioms(this.allrules, lendiff)
         let cvRules = this.FilterAxioms(this.allrules, this.parser.cv)
+        for(const x of srcexpsnonil){
+            // console.log('x: ', this.ExpToString(x[0]))
+        }
+        
         for(const rule of cvRules){
-            if(this.MatchCv(this.cloneExp(rule.leftexps), this.cloneExp(rule.rightexps), src, tar, srcexpsnonil, tarexps)) 
+            if(this.MatchCv(this.cloneExp(rule.leftexps), this.cloneExp(rule.rightexps), nsrc, tar, srcexpsnonil)) 
             {
+                
                 if(debug){
                     console.log('   Proving --> MatchCV    rule: ', this.RuleToString(rule))                    
                 }
@@ -346,15 +365,20 @@ class ProofAssistant {
         }
 
         //we filter the axioms by having the same difference in length as the statement
-        for(const rule of lenRules){
 
+
+        for(const rule of lenRules){
             for(const sub of srcexps){
-                if(this.CheckFromRules(rule, sub, src, tar, debug))
-                if(debug){
-                    console.log('   Proving --> CheckFromRules    rule: ', this.RuleToString(rule))                    
+
+                if(this.CheckFromRules(rule, sub, nsrc, tar, debug)){
+                    if(debug){
+                        console.log('   Proving --> CheckFromRules    rule: ', this.RuleToString(rule))                    
+
+                    } 
                     return true
-                } 
+                }
             }
+
         }
         return false
     }
@@ -369,7 +393,6 @@ class ProofAssistant {
         else{
             for(let i = 0; i < lst.length; i ++){
                 let item = [lst[i]]
-                // console.log('!item: ', item)
                 let rmlst = lst.slice(0,i).concat(lst.slice(i+1, lst.length))
                 let nextlv = this.GetAllVariance(rmlst, choice-1)
                 //take all the list from the next level and concat the removed element to every list.
@@ -377,7 +400,6 @@ class ProofAssistant {
 
                 for(const l of nextlv) {
                     ret.push(item.concat(l))
-                    // console.log('!!!', item.concat(l))
                 }    
                 
             }
@@ -427,75 +449,57 @@ class ProofAssistant {
         let tar = this.GetAllOperands(tarl.concat(tarr))
         let combinations = this.GetAllVariance(tar, src.length)
         let ret = this.ReplaceOperandsVariance(srcx, combinations) 
-        // for(const x of ret){
-        //     console.log('x: ', this.ExpToString(x))
-        // }
-        // console.log()
+
         return ret 
     }
-    
 
-    getCVsub(src, tar, srcsubs,tarsubs){
-        // console.log('getCVsub: ', this.ExpToString(src))
-        let ind3lists = []
-        for(const srcsub of srcsubs){
-            for(const tarsub of tarsubs){
-                if(srcsub[1] != tarsub[1] || !this.Same(src.slice(0,srcsub[1]), tar.slice(0,tarsub[1]))){
-                    continue
-                }else{
-                    // console.log('   ', this.ExpToString(srcsub[0]),'<->', this.ExpToString(tarsub[0]))
-                    // console.log('       ', this.ExpToString(src.slice(0,srcsub[1])),'<->', this.ExpToString(tar.slice(0,tarsub[1])))
-                    let [srcbr, tarbr] = [this.getFirstBr(src), this.getFirstBr(tar)]
-                    let srcsrest, tarrest
-
-                    if(srcbr.index != -1 && tarbr.index != -1){
-                        // console.log('!: ', this.ExpToString(src), 'sub[0]: ', this.ExpToString(srcsub[0]))
-                        srcsrest = this.getRest(this.cloneExp(src),srcsub[0])
-                        tarrest = this.getRest(this.cloneExp(tar), tarsub[0])
-                        // [srcsrest, tarrest] = [this.getRest(src,srcsub[0]), this.getRest(tar, tarsub[0])]
-                    }
-                    else{
-                        [srcsrest, tarrest] = [src.slice(srcsub[1]+srcsub[0].length, src.length), tar.slice(tarsub[1]+tarsub[0].length, tar.length)]
-                    }
-
-                    if(this.Same(srcsrest, tarrest)){
-                        ind3lists.push([srcsub,tarsub])
-                    }
-                }
-            }
-        }
-        return ind3lists
-    }
-
-    MatchCv(rl, rr, src, tar, srcsub, tarsub){
+    MatchCv(rl, rr, src, tar, srcsubs, tarsub){
         //record sub operands, sub is not be normalized 
         let [trl,trr] = [this.cloneExp(rl), this.cloneExp(rr)]
-
         //filter subexpressions based on sub index, length, and sameneess of beggining and rest
-        let filteredpair = this.getCVsub(src,tar,srcsub,tarsub)        
+        // let filteredpair = this.getCVsub(src,tar,srcsub,tarsub)        
+        // let filteredpair = [srcsub, tarsub]      
+        
 
-        //list of sum gets all combinations for based on lengths given 
+        for(const srcsub of srcsubs){
 
-        for(const pairofsub of filteredpair){
             if(this.hasCV(trl)){     
-                let table = this.checkcv2(srcsub, pairofsub[0][0], rl)    
-                
+
+                let table = this.checkcv(srcsubs,srcsub, rl)                      
+                // console.log(this.ExpToString(srcsub[0]), table)
+
                 if(table){
-                    // console.log(table)
-                    // let newtar = this.replacecvexp2(table, pairofsub)
-                    if(this.checkcv2(srcsub,pairofsub[1][0], rr, table)){
-                        return true
+                    let repl = this.replacecvexp({...table},this.cloneExp(rr))
+                    let sub = srcsub
+
+                    if(!this.Same(repl, sub[0])){
+                        let substited = this.substitute(repl,sub,src)
+                        console.log('cv subst: ', this.ExpToString(substited),'|','repl:',this.ExpToString(repl),'sub:',this.ExpToString(sub[0]),'src:', this.ExpToString(src), 'rr: ', this.ExpToString(rr),'rl: ', this.ExpToString(rl),)
+                        if(this.Same(substited, tar)){
+                            return true 
+                        }
                     }
+                   
+
+                    // if(this.substituteCV(pairofsub[1], rr, table)){
+                    //     return true
+                    // }
                 }
             }
             if(this.hasCV(trr)){     
-                let table = this.checkcv2(srcsub,pairofsub[0][0], rr)    
+                let table = this.checkcv(srcsubs,srcsub, rr)    
+                
                 if(table){
+                    let repl = this.replacecvexp({...table},this.cloneExp(rl))
+                    let sub = srcsub
 
-                    if(this.checkcv2(srcsub, pairofsub[1][0], rl, table)){
-                        console.log('! ', this.ExpToString(rl),' = ', this.ExpToString(pairofsub[1][0]), table)
+                    if(!this.Same(repl, sub[0])){
+                        let substited = this.substitute(repl,sub,src)
+                        console.log('cv subst: ', this.ExpToString(substited),'|','repl:',this.ExpToString(repl),'sub:',this.ExpToString(sub[0]),'src:', this.ExpToString(src), 'rl: ', this.ExpToString(rl),)
 
-                        return true
+                        if(this.Same(substited, tar)){
+                            return true 
+                        }                        
                     }
                 }
             }
@@ -514,17 +518,19 @@ class ProofAssistant {
 
         //if no target operands, then generate permutation of all with the replacing expression matching matching all operands in src
         if(this.GetAllOperands(sub[0]).length == 0){
+
             let oprvariancel = this.GetAllOperandsVariance(rl, src, tar)
             for(const x of oprvariancel){
+
                 if(this.Check(x, sub, src, tar, debug)) return true
             }
             let oprvariancr = this.GetAllOperandsVariance(rr, src, tar)
             for(const x of oprvariancr){
+
                 if(this.Check(x, sub, src, tar, debug)) return true
             }
 
         }else{
-            // console.log('here')
 
             let [nrl, nrlt] = this.Operands_normalize_exps(this.cloneExp(rl), {})
             let [nrr, nrrt]= this.Operands_normalize_exps(this.cloneExp(rr), {})
@@ -535,14 +541,17 @@ class ProofAssistant {
                 
                 let table = this.matchDictionaries(this.flipKeyandValue(nrrt), this.flipKeyandValue(this.matchDictionaries(nsub_table, this.flipKeyandValue(nrlt))))
 
+
+
                 let repl = this.Operands_normalize_exps(nrr, table)[0]
+
                 if(this.Check(repl, sub, src, tar, debug)) return true
             }
             if(this.Same(nrr, nsub)){
                 let table = this.matchDictionaries(this.flipKeyandValue(nrlt), this.flipKeyandValue(this.matchDictionaries(nsub_table, this.flipKeyandValue(nrrt))))
 
                 let repl = this.Operands_normalize_exps(nrl, table)[0]
-
+                
                 if(this.Check(repl, sub, src, tar, debug)) return true
             }
         }
@@ -571,10 +580,9 @@ class ProofAssistant {
     Check(normalized, sub, src, tar, debug = false){
         let allnew = this.getAllCombine(normalized, sub, src)
         if(debug){
-            // console.log(allnew.length)
             for(const x of allnew){
-                // console.log('   getallcombine: ', this.ExpToString(x))
             }
+
         }
         for(const v of allnew){
             if(this.Same(v, tar)){
@@ -589,7 +597,8 @@ class ProofAssistant {
     getAllCombine(normalized, sub, src){
 
         let begin = src.slice(0, sub[1])
-        let beginbr = this.getLastBr(begin)
+        let beginbr = this.getBr(begin, false)
+
         let all = []
         //go to last br 
         if(beginbr.index != -1){
@@ -600,6 +609,7 @@ class ProofAssistant {
             if((sub[1] > beginbr.index && sub[1] <= beginbr.index + top.length) 
                 || (sub[1] == beginbr.index+top.length+1 && sub[0].length == 0)
             ){
+
                 let ntops = this.getAllCombine(normalized, [sub[0], sub[1]-(beginbr.index+1)], top)
                 for(const x of ntops){                    
                     let n = this.updateBr(begin, x, bot, beginbr).concat(end)
@@ -610,62 +620,71 @@ class ProofAssistant {
             if((sub[1] > beginbr.index + top.length  && sub[1] <= beginbr.index + top.length + bot.length) 
                 || (sub[1] == beginbr.index + bot.length + top.length+1 && sub[0].length == 0)
             ){
+
                 let nbots = this.getAllCombine(normalized, [sub[0], sub[1]-(beginbr.index+top.length+1)], bot)
                 for(const x of nbots){
                     let n = this.updateBr(begin, top, x, beginbr).concat(end)
+
                     all.push(n)
                 }                    
             }
                 //right after the branch
             if(sub[1] == beginbr.index+top.length+bot.length+1){
+
                 let n = this.substitute(normalized, [sub[0], sub[1]], src)
+
                 all.push(n)
             }
         }
         else{
             //begin starts after all branch closed
             let n = this.substitute(normalized, [sub[0], sub[1]], src)
+
             all.push(n)
         }
+        
         
         return all
     }
 
     substitute(repl, tsub, src){
         let sub = tsub
-        let srcbr = this.getFirstBr(src)
+        let srcbr = this.getBr(src)
         let offset = srcbr.index
         while(offset != -1 && sub[1] > offset) offset += 1 
         
         if(offset != -1){
             srcbr.index += offset
-            srcbr = this.getFirstBr(src.slice(offset, src.length))
+            srcbr = this.getBr(src.slice(offset, src.length))
         }
 
-        let subbrcheck = this.getFirstBr(sub[0])
+        let subbrcheck = this.getBr(sub[0])
         let begin = src.slice(0, sub[1])
 
         //if src has branch
         if(srcbr.index != -1 && subbrcheck.index != -1){
             //if sub has branch
-                let brrange = this.getBranchEnd(src, srcbr)
-                let end = src.slice(brrange+1,src.length)
-                let rest = this.getRest(src,sub[0])
-                // console.log('   intorest: ', this.ExpToString(src.slice(srcbr.index, brrange)))
-                // console.log('   begin: ', this.ExpToString(begin), 'src: ', this.ExpToString(src), 'sub[1]: ', sub[1], 'sub[0]', this.ExpToString(sub[0]), 'rest: ', this.ExpToString(rest), 'repl: ', this.ExpToString(repl), )
-                let combine = this.CombineExp(repl, rest)
-                // console.log('   !combine: ', this.ExpToString(combine), this.ExpToString(end))
-                let x = begin.concat(combine)
-                // console.log('x: ', this.ExpToString(x))
-                return x 
+
+            let rest = this.getRest(src,sub[0])
+            let combine
+
+            // if(repl[0] && repl[0].Opparam[0] == '#102'){
+            //     console.log('repl:',this.ExpToString(repl),'sub:',this.ExpToString(sub[0]),'src:', this.ExpToString(src))
+            //     combine = this.CombineExp(rest,repl)
+            // }else{
+                combine= this.CombineExp(repl, rest)
+            // }
+            let x = begin.concat(combine)
+
+            return x 
         }else{
             return begin.concat(repl).concat(src.slice(sub[1]+sub[0].length, src.length))
         }
     }
 
     CombineExp(src, tar, getback = false){
-        let srcbr = this.getFirstBr(src)
-        let tarbr = this.getFirstBr(tar)
+        let srcbr = this.getBr(src)
+        let tarbr = this.getBr(tar)
         if(srcbr.index != -1 && tarbr.index != -1){
             let [srctop, srcbot] = this.getTopBot(src, srcbr)
             let [tartop, tarbot] = this.getTopBot(tar, tarbr)
@@ -673,7 +692,6 @@ class ProofAssistant {
             let tarbegin = tar.slice(0, tarbr.index+1)
             let range = this.getBranchEnd(src, srcbr)
             let endtrim = src.slice(range, src.length)
-
             
             if((srcbr.br == '#100' || srcbr.br == '#101') && (tarbr.br == '#101'|| tarbr.br == '#100')){
                 let topcombine = this.CombineExp(srctop, tartop)
@@ -692,12 +710,12 @@ class ProofAssistant {
             }else if(srcbr.br == '#101' && tarbr.br == '#102'){
                 // throw new Error('error in CombineExp')
                 // console.log(srcbr.index)
+
                 let topcombine = this.CombineExp(srctop, tartop)
                 let botcombine = this.CombineExp(srcbot, tarbot)
-                let ret = this.updateBr(tarbegin, topcombine, botcombine,tarbr).concat(endtrim)
-                ret[tarbr.index].Opparam[0] = '#100'
-                ret[tarbr.index].operator = src[srcbr.index].operator
-                ret[tarbr.index].operands = src[srcbr.index].operands
+                let ret = this.updateBr(begin, topcombine, botcombine,srcbr).concat(endtrim)
+                ret[srcbr.index].Opparam[0] = '#100'
+
                 return ret
                 
             }
@@ -715,8 +733,8 @@ class ProofAssistant {
     }
 
     getRest(exp, sub, getback = false){
-        let subbr = this.getFirstBr(sub)
-        let expbr = this.getFirstBr(exp)
+        let subbr = this.getBr(sub)
+        let expbr = this.getBr(exp)
         if(subbr.index != -1 && expbr.index != -1){
             // console.log(this.ExpToString(exp), this.ExpToString(sub),getback)
             let [subtop, subbot] = this.getTopBot(sub, subbr)
@@ -726,11 +744,10 @@ class ProofAssistant {
                 let botrest = this.getRest(expbot, subbot)
                 let range = this.getBranchEnd(exp, expbr)
                 let endtrim = exp.slice(range,exp.length)
-                let subbr2 = this.getFirstBr([exp[expbr.index]])
+                let subbr2 = this.getBr([exp[expbr.index]])
                 let ret = this.updateBr([sub[subbr.index]], toprest, botrest, subbr2).concat(endtrim)
                 if(expbr.br == '#100' && subbr.br == '#101'){
                     //if exp contains #100, and subbr is #101, then the rest expression contains #102
-                    // console.log(ret, subbr.index)
                     ret[subbr2.index].Opparam[0] = '#102'
                     ret[subbr2.index].operator = null
                     ret[subbr2.index].operands = []
@@ -742,7 +759,15 @@ class ProofAssistant {
                 let toprest = this.getRest(exptop, subtop, true)
                 let botrest = this.getRest(expbot, subbot, true)
                 let begintrim = exp.slice(0, expbr.index+1)
+                // let endtrim = this.cloneExp(exp.slice(this.getBranchEnd(exp, expbr), exp.length))
                 let ret = this.updateBr(begintrim, toprest, botrest, subbr)
+                let subbr2 = this.getBr([exp[expbr.index]])
+
+                if(expbr.br == '#100' && subbr.br == '#102'){
+                    //if exp contains #100, and subbr is #101, then the rest expression contains #102
+                    ret[subbr2.index].Opparam[0] = '#100'
+                    return ret
+                }
                 return ret
             }
             else{               
@@ -788,7 +813,7 @@ class ProofAssistant {
             i += 1
             count += 1
         }
-        return count.toString()
+        return count
     }
 
     getBranchEnd(exp, br){
@@ -850,42 +875,33 @@ class ProofAssistant {
         let end = exp.slice(br.index + range + 1, exp.length)
 
         exp = exp.slice(0, br.index+1).concat(topexp).concat(botexp).concat(end)
-        exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp)
-        exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp)
+        exp[br.index].Opparam[1] = '$'+ this.getNumOpt(topexp).toString()
+        exp[br.index].Opparam[2] = '$'+ this.getNumOpt(botexp).toString()
         return exp
-    }
-
-    incOperands(exps){
-        let i =0
-        while(i < exps.length){
-            if(exps[i].operands){
-                if(exps[i].operands.length>0){
-                    let j = 0
-                    while(j < exps[i].operands.length){
-                        let temp = parseInt(exps[i].operands[j])
-                        exps[i].operands[j] = String(temp+1)
-                        j += 1
-                    }
-                }
-            }
-            i+=1
-        }
-        return exps 
     }
 
     //return the longest string that is different and between two strings
     //same thing as maximizing the length of left and right 
-    getFirstBr(exp){
+    getBr(exp, first = true){
         let br = {index : -1, next : {}, prev:-1, bot:exp.length, top:exp.length, br: ''}
         if(exp.length == 0) return br
-
+        let broffset = 0 
         let ti = 0
         while(ti < exp.length) {
             if(exp[ti]){
                 if(exp[ti].Opparam){
                     if(exp[ti].Opparam[0]){
                         if(this.BrOperators.includes(exp[ti].Opparam[0])){
-                            return {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                            if(first) {
+                                return {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                            }else{
+                                if(br.index == -1 || ti > broffset + br.index+br.bot + br.top ){
+                                    br = {index : ti, next : {}, prev:br, top: parseInt(exp[ti].Opparam[1][1]), bot:parseInt(exp[ti].Opparam[2][1]), br: exp[ti].Opparam[0]}
+                                }
+                                else{
+                                    broffset += parseInt(exp[ti].Opparam[2][1]) + parseInt(exp[ti].Opparam[1][1])
+                                }
+                            }
                         }
                     }
                 }
@@ -915,19 +931,41 @@ class ProofAssistant {
         }
         return br 
     }
-    inBranch(br, i) {
-        return (br.index > -1) 
-        && (i <= br.index+br.top+br.bot) 
-        && (i >= br.index) 
+
+    getMaxOpr(exp){
+        let max = 0
+        for(let i = 0 ; i < exp.length ; i ++){
+            if(exp[i].operands){
+                for(let j = 0; j < exp[i].operands.length ; j ++){
+                    let opr = parseInt(exp[i].operands[j])
+                    if(opr >= max){
+                        max = opr
+                    }
+                }
+            }
+        }
+        return max
     }
+    //this is useful for matching operands of beginning or end expression of a proof
+    IncOperands(Exp, offset= 1){
+        let exp = this.cloneExp(Exp)
+        let max = this.getMaxOpr(exp)
+        // console.log(this.ExpToString(Exp), max)
+        for(let i = 0 ; i < exp.length ; i ++){
+            if(exp[i].operands){
+                for(let j = 0; j < exp[i].operands.length ; j ++){
+                    let opr = parseInt(exp[i].operands[j])
+                    if(opr+offset > max){
+                        exp[i].operands[j] = (opr+offset-max).toString()
 
-    Operands_normalize(rule) {
-        let operands_table = {}
-        let leftexps = this.Operands_normalize_exps(rule.leftexps, operands_table)[0]
-        let rightexps = this.Operands_normalize_exps(rule.rightexps, operands_table)[0]
+                    }else{
+                        exp[i].operands[j] = (opr + offset).toString()
 
-        return {leftexps: leftexps, rightexps:rightexps}
-    
+                    }
+                }
+            }
+        }
+        return exp
     }
 
     Operands_normalize_exps(srcexps, table) {
@@ -966,53 +1004,6 @@ class ProofAssistant {
 
     }
 
-    genPermutation(slength, tlength){
-        let i = 0
-        let j = 0 
-        let ret = []
-        while(i < slength){
-            while(j < tlength){
-                let v = [i,j]
-                ret.push(v)
-                j+=1
-            }
-            i+= 1
-        }
-        return ret
-    }
-
-    operationlist(exps){
-        let i = 0
-        let ret = []
-        while(exps[i]){
-            let srcropt = exps[i] 
-            if(srcropt.Opparam){
-                if(srcropt.Opparam.length != 0){
-                    i+=1
-                     continue
-                }else{
-                    let opt = [srcropt.operator]
-                    if(srcropt.operands){
-                        opt = opt.concat(srcropt.operands)
-                    }
-                    if(!ret.includes(opt)){
-                        ret.push(opt)
-                    }
-                }
-            }else{
-                let opt = [srcropt.operator]
-                if(srcropt.operands){
-                    opt = opt.concat(srcropt.operands)
-                }
-                if(!ret.includes(opt)){
-                    ret.push(opt)
-                }
-            }
-            i += 1
-        }
-        return ret
-    }
-    
     getcv(cvtable, exps){
         let i = 0
         while(exps[i]){
@@ -1024,27 +1015,13 @@ class ProofAssistant {
         }
         return cvtable
     }
-    assigncv(cvtable, optlist, perm){
-        let tcvtable = {...cvtable}
-        for(const p of perm){
-            if(tcvtable[p[0] + 1] == ''){
-                let v =''
-                for(const c of optlist[p[1]]){
-                    v += c + ' '
-                }
-                tcvtable[(p[0] + 1).toString()] = v.trim()
-            }
-        }
-        return tcvtable
-    }
-
 
     ExpressionLength(exp){
         let count = 0
         for(let i = 0; i < exp.length; i ++){
             count += 1
             if(this.isBranch(exp[i])){
-                let br = this.getFirstBr(exp.slice(i, i+1))
+                let br = this.getBr(exp.slice(i, i+1))
                 br.index = i
                 i = this.getBranchEnd(exp, br)
                 continue;
@@ -1053,13 +1030,10 @@ class ProofAssistant {
         return count 
     }
 
-    replacecvexp2(cvtable, expsrc){
+    replacecvexp(cvtable, expsrc){
         let exps = []
-        let br = this.getFirstBr(expsrc)
+        let br = this.getBr(expsrc)
         let offset = 0
-        // console.log('!!!', this.ExpToString(expsrc))
-        // console.log('replacecvexp2 --> expsrc: ', this.ExpToString(expsrc))
-        // console.log('srcexp: ', this.ExpToString(expsrc))
         for(let i = 0 ; i< expsrc.length ; i ++){
             if(br){
                 if(br.index != -1 && i > this.getBranchEnd(expsrc, br)){
@@ -1078,10 +1052,7 @@ class ProofAssistant {
                     offset += subexp.length -1
 
                     if(i <= br.index+br.top){
-                        // console.log(this.ExpToString(exps), br.index, this.ExpToString([exps[br.index]]),exps.length)
                         exps[br.index].Opparam[1] = '$'+ (parseInt(exps[br.index].Opparam[1][1]) + newlen).toString()
-
-                        // br=this.getFirstBr(exps.slice(i, exps.length))
                     }else if( i > br.index + br.top && i <= br.index + br.top + br.bot){
                         exps[br.index].Opparam[2] = '$'+ (parseInt(exps[br.index].Opparam[2][1]) + newlen).toString()
                     }
@@ -1093,39 +1064,16 @@ class ProofAssistant {
                 exps.push(expsrc[i])
 
                 if(this.isBranch(expsrc[i])){
-                    br = this.getFirstBr(expsrc.slice(i, expsrc.length))
+                    br = this.getBr(expsrc.slice(i, expsrc.length))
                     br.index += i + offset
-                    // console.log(i, this.ExpToString(exps.slice(i, exps.length)))
                 }
             }
         }
-        // console.log('replaceeps2: ', this.ExpToString(exps), this.ExpressionLength(exps))
         return exps
     }
 
-    replacecvexp(cvtable, expsrc){
-        let exps = this.cloneExp(expsrc)
-        for(const exp of exps){
-            if(exp.operator == this.parser.cv){
-                let t = cvtable[exp.operands[0]].split(' ')
-                exp.operator = t[0]
-                exp.operands = t.slice(1,t.length)
-            }
-        }
-        return exps
-    }
-    replacecv(cvtable, rule){
-        let retr = this.genRule('!'+this.ExpToString(rule.leftexps) + '@' + this.ExpToString(rule.rightexps))
-        retr.leftexps = this.replacecvexp(cvtable, retr.leftexps)
-        retr.rightexps = this.replacecvexp(cvtable, retr.rightexps)
-        return retr 
-    }
-
-    //if true, then every constant operator appears in srcexp, which means 
     NonCvOptCount(tarexp){
         let count = 0
-        //if rule is longer, then there is no matches that can make srcexp tarexp the same
-        // if(tarexp.length > srcexp.length) return false 
         for(let i =0; i<tarexp.length; i++){
             if(tarexp[i].operator != this.parser.cv){
                 count += 1
@@ -1156,36 +1104,14 @@ class ProofAssistant {
         return result;
     }
 
-    generateLowerCombinations(input) {
-        const result = [];
-    
-        function backtrack(current, index) {
-            if (index === input.length) {
-                result.push([...current]);
-                return;
-            }
-    
-            for (let i = 0; i < input[index]; i++) {
-                current.push(i);
-                backtrack(current, index + 1);
-                current.pop();
-            }
-        }
-    
-        backtrack([], 0);
-        return result;
-    }
-
     FilterExpLen(len, allsub){
         let allfiltersub = []
         for(const sub of allsub){
             if(sub[0].length <= len ){
-                // console.log('   ',this.ExpToString(sub[0]), sub[0].length)
                 allfiltersub.push(sub)
             }
         }
         allfiltersub = this.sort_subexp(allfiltersub)
-        // console.log('**',allfiltersub)
         return allfiltersub
     }
 
@@ -1204,10 +1130,15 @@ class ProofAssistant {
         while(i < src.length) {
             
             if(src[i].Opparam && tar[i].Opparam && src[i].Opparam.length !=0 && tar[i].Opparam.length != 0){
+                if(src[i].Opparam[1] != tar[i].Opparam[1] || tar[i].Opparam[1] != src[i].Opparam[2])
+                    return false
                 let srcbranch = src[i].Opparam[0]
                 let tarbranch = tar[i].Opparam[0]
                 if(srcbranch != tarbranch){
                     if((srcbranch != '#101' && srcbranch != '#102') && tarbranch != '#100'){
+                        return false
+                    }
+                    if(srcbranch == '#102' && tarbranch == '#101'){
                         return false
                     }
                 }
@@ -1223,59 +1154,79 @@ class ProofAssistant {
         return true
     }
 
-    CheckWithTable(srcexp, tarexp, table, combs, allfiltersub){
-        
+    
+
+    generateTableCombinations(keys, lists, sum) {
+        const results = [];
+        const keyNames = Object.keys(keys);
+        const extendedLists = [...lists, []];
+
+        function helper(index, currentTable, usedIndices, totalLength) {
+            if (index === keyNames.length) {
+            if (totalLength === sum) {
+                results.push({ ...currentTable });
+            }
+            return;
+            }
+
+            const key = keyNames[index];
+
+            for (let i = 0; i < extendedLists.length; i++) {
+            if (usedIndices.has(i)) continue;
+
+            const list = extendedLists[i];
+            const newLength = totalLength + list.length;
+
+            if (newLength > sum) continue;
+
+            currentTable[key] = list;
+            usedIndices.add(i);
+
+            helper(index + 1, currentTable, usedIndices, newLength);
+
+            usedIndices.delete(i);
+            delete currentTable[key];
+            }
+        }
+
+        helper(0, {}, new Set(), 0);
+        return results;
+    }
+
+    CheckWithTable(srcsub, tarexp, table, combs, allfiltersub){
         
         if(combs && allfiltersub){
-            // console.log('----------------')
-            // console.log('srcexp: ', this.ExpToString(srcexp), 'tarexp: ', this.ExpToString(tarexp), table)
-
             let cvPosition = this.getCvPositions(tarexp)
-            //for all sum of lists 
             for(const comb of combs){
-                // console.log('   comb: ', comb)
                 let ttable = {... table}
-
-                //for every code variable in tar, get their index,
                 for(let i = 0; i < cvPosition.length; i ++ ){
-                    // console.log('       cvPosition[i]:', cvPosition[i])
-
-                    //for every length that adds up to the sum
                     for(const len of comb){
-                        // console.log('           len:', len)
+                        let table_comb = this.generateTableCombinations(table, allfiltersub, len)
 
-                        //for every filtered sub
-
-                        //filtered sub might not capture all forms of branch expressions
-                        //because multiple br expression of the same length can appear at the same index
                         for(const sub of allfiltersub){
+                            // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                            //     // console.log('replr: ',comb, cvPosition, sub[0],sub[1])
+                            //     console.log('       ', this.ExpToString(sub[0]), cvPosition[i][1], sub[1], this.ExpToString(srcsub[0]),srcsub[1])
+
+                            // }
                             //if length matches the length required, and if index matches subexp index
-                            if(sub[0].length === len && sub[1] === cvPosition[i][1]){
+                            if(sub[0].length == len){
+                                
                                 ttable[cvPosition[i][0]] = this.cloneExp(sub[0])
                                 break
                             }
                         }
                     }
                 }
-                let repltar = this.replacecvexp2(ttable, this.cloneExp(tarexp))
-                //what if we check if replsrc is the same as any subexpression in srccexp
-                //allfiltersub is meant to extract all target of cv, so we need to search in all subexpression
-                //what if after replacing the cv, and replctar is a subexpression of srcexp, and the same is 
-                //true for the other side of expression, and the subexpressions are at the same index, but the rest of the 
-                // subexpression are no the same?
+                let repltar = this.replacecvexp(ttable, this.cloneExp(tarexp))
 
-                if(this.ObrMatchCbr(repltar, srcexp)){
-                    // console.log('repltar: ', this.ExpToString(repltar), this.ExpToString(srcexp),ttable, this.ObrMatchCbr(repltar, srcexp))
+                // if(this.ExpToString(srcexp).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                //     console.log('replr: ', this.ExpToString(repltar),comb, cvPosition)
+                // }
+                if(this.ObrMatchCbr(repltar, srcsub[0])){
                     return ttable
                 } 
             }
-        }else{ 
-
-            // console.log(cvtable)
-            
-            let repltar = this.replacecvexp2(table, this.cloneExp(tarexp))
-            // console.log('2replsrc: ', this.ExpToString(replsrc))
-            if(this.ObrMatchCbr(repltar, srcexp)) return table
         }
         return false
     }
@@ -1294,250 +1245,39 @@ class ProofAssistant {
         }
         return ret 
     }
-    checkcv2(allsub, srcexp, tarexp, table){
+
+    substituteCV(srcexp, tarexp, table){
+
+        let rettable = this.CheckWithTable(srcexp, tarexp, table)
+        if(rettable) return rettable
+        else{
+            let repltar = this.replacecvexp(table, this.cloneExp(tarexp))
+            if(this.ObrMatchCbr(repltar, srcexp)) return table
+        }
+        return false
+    }
+
+    checkcv(allsub, sub, tarexp, table){
         let tablelen = Object.keys(this.getcv({},tarexp)).length
         let nonCVlen = this.NonCvOptCount(tarexp)
-        let listofsum = this.generateCombinations(tablelen, srcexp.length - nonCVlen)
-        let allfiltersub = this.FilterExpLen(srcexp.length - nonCVlen, allsub)
+        let listofsum = this.generateCombinations(tablelen, sub[0].length - nonCVlen)
+        let allfiltersub = this.FilterExpLen(sub[0].length - nonCVlen, allsub)
+
+
 
         if(!table){
-            let rettable = this.CheckWithTable(srcexp, tarexp, this.getcv({},tarexp), listofsum, allfiltersub)
-            // if(rettable){
-            //     console.log('!!! rettable:   ', rettable)
-            // }
-            if(rettable) return rettable
-        }else{
-            let rettable = this.CheckWithTable(srcexp, tarexp, table)
+            let rettable = this.CheckWithTable(sub, tarexp, this.getcv({},tarexp), listofsum, allfiltersub)
+            if(this.ExpToString(sub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                console.log(this.ExpToString(sub[0]),'<>',this.ExpToString(tarexp),listofsum, rettable)
+            }
             if(rettable) return rettable
         }
         
         return false
-    }
-
-    checkcv(srcr, tarr, getreplaced = false){
-        let [sleft,sright] = [this.cloneExp(srcr.leftexps), this.cloneExp(srcr.rightexps)]
-        let [tleft, tright] = [this.cloneExp(tarr.leftexps), this.cloneExp(tarr.rightexps)]
-        let con = sleft.concat(sright).concat(tleft).concat(tright)
-        let cvtable = {}
-        cvtable = this.getcv(cvtable, con)
-        let r = sleft.concat(sright)
-        let optlist = this.operationlist(r)
-        let perm = this.genPermutation(Object.keys(cvtable).length, optlist.length)
-
-        for(let i = 0 ; i < perm.length ; i ++){
-            let tcvtable = this.assigncv(cvtable, optlist, perm, i)
-            let replacedr = this.replacecv(tcvtable, tarr)
-            if(this.Same(this.cloneExp(sleft), this.cloneExp(replacedr.leftexps))||this.Same(this.cloneExp(sright), this.cloneExp(replacedr.leftexps)) &&
-                (this.Same(this.cloneExp(sright), this.cloneExp(replacedr.rightexps))||this.Same(this.cloneExp(sleft), this.cloneExp(replacedr.rightexps)))) {
-
-                    if(getreplaced){
-                        return tcvtable
-                    }
-                    return true 
-            }
-            if(this.OperatorEquivalence(srcr,replacedr) && this.OperandEquivalence(srcr,replacedr)){
-                if(getreplaced){
-                    return tcvtable
-                }
-                return true
-            }
-        }
-        return false
-    }
-
-    //--Equivalence--
-    //isRule checks if rule exist or its commutative form exists in the rule table
-    //code variables
-    isRule(relation, debug=false){
-        if(debug){
-            console.log('relation: ', this.RuleToString(relation))
-        }
-        let left = relation.leftexps
-        let right = relation.rightexps
-        
-        // console.log(left, right)
-        let i = 0
-
-        for(const rule of this.allrules){
-
-
-            let rleft = rule.leftexps
-            let rright = rule.rightexps
-            if(debug){
-                console.log('begincv: ', this.RuleToString(relation))
-            }
-            
-            
-            // if(this.hasCV(rleft) || this.hasCV(rright)){
-            //     if(this.checkcv2([[0,left]],left,rleft) && this.checkcv2([[0,right]],right,rright)) {
-            //         return true
-            //     }
-            // }
-            if(this.checkcv(relation,rule))return true
-            if(debug){
-                console.log('failed cv')
-            }
-
-            //lengths dont match, next rule
-            if(left.length != rleft.length && left.length != rright.length) continue
-            if(right.length != rright.length && right.length != rleft.length) continue
-
-            //if both statements have the same left and right, then check for operand equivalentce.
-
-            if(this.Same(left, rleft) ) {
-                if(this.Same(right, rright)){
-                    // found rule
-                    return true 
-                }
-            }
-            // try rule commutativity
-            if(this.Same(left, rright)) {
-                if(this.Same(right, rleft)){
-                    return true
-                }
-            }
-
-            i += 1
-        }       
-        
-        return false 
-    }
-
-    operatorlist(src, opt, brflag = true){
-        let ret =[]
-        for (const e of src){
-            if(e.Opparam && brflag){
-                if(e.Opparam.length!=0){
-                    if(opt && (e.Opparam[0] == '#102' || e.Opparam[0] == '#101')){
-                        ret.push('#100')
-                        ret.push(e.Opparam[1])
-                        ret.push(e.Opparam[2])
-                        if(e.Opparam[0] == '#101') {ret.push(e.operator)}
-                        else{
-                            ret.push(opt)
-                        }
-                    }else{
-                        ret.push(e.Opparam[0])
-                        ret.push(e.Opparam[1])
-                        ret.push(e.Opparam[2])
-                        if(e.operator){
-                            ret.push(e.operator)
-                        }
-                    }
-                }
-                else{
-                    ret.push(e.operator)
-                }
-            }
-            else{
-                ret.push(e.operator)
-            }
-        }
-        return ret
-    }
-
-    getBrOpt(src){
-        for (const e of src){
-            if(e.Opparam){
-                if(e.operator.length != 0)
-                    return e.operator
-            }
-        }
-        return  
-    }
-
-    OperatorEquivalence(srcstatement, tarstatement){
-        let srctablel = this.operatorlist(srcstatement.leftexps)
-        let srctabler = this.operatorlist(srcstatement.rightexps)
-        let opt = this.getBrOpt(srcstatement.leftexps)
-        if(!opt){
-            opt = this.getBrOpt(srcstatement.rightexps)
-        }
-
-        //if rule is Blb, then add operator to tartable if operator exists
-        //if src has #13, then treat #12 in tar as #13
-
-        let tartablel = this.operatorlist(tarstatement.leftexps, opt)
-        let tartabler = this.operatorlist(tarstatement.rightexps, opt)
-
-        if(tartablel.length != srctablel.length && tartablel.length != srctabler.length ) return false
-        if(tartabler.length != srctablel.length && tartabler.length != srctabler.length ) return false
-        if(!(this.listequal(srctablel,tartablel) && this.listequal(srctabler,tartabler)) && !(this.listequal(srctabler,tartablel) && this.listequal(srctablel,tartabler))) return false
-        return true
-    }
-
-    
-    operandlist(src, operands){
-        let ret =[]
-        for (const e of src){
-            if(e.Opparam){
-                if(e.Opparam.length != 0){
-                    if(operands && (e.Opparam[0] == '#101' || e.Opparam[0] == '#102')){
-                        ret.concat(operands)
-                    }
-                }
-                else if(e.operands){
-                    ret.concat(e.operands)
-                }
-            }
-            else if(e.operands){
-                ret.concat(e.operands)
-            }
-        }
-        return ret
-    }
-    getBrOprands(src){
-        for (const e of src){
-            if(e.Opparam){
-                if(e.operator.length != 0)
-                    return e.operands
-            }
-        }
-        return  
-    }
-    
-    OperandEquivalence(srcstatement, tarstatement){
-        let srctable = this.operandlist(srcstatement.leftexps).concat(this.operandlist(srcstatement.rightexps))
-
-        let operands = this.getBrOprands(srcstatement.leftexps)
-        if(!operands){
-            operands = this.getBrOprands(srcstatement.rightexps)
-        }
-        let tartable = this.operandlist(tarstatement.leftexps, operands).concat(this.operandlist(tarstatement.rightexps, operands))
-
-        if(tartable.length != srctable.length) return false 
-
-        let sit = {}
-        let srt = []
-        let tit = {}
-        let trt=[]
-        let index = 1
-        for(const opr of srctable){
-            if(!sit[opr]){
-                sit[opr] = index 
-                index += 1
-            }
-            srt.push(sit[opr])
-        }
-        index = 1
-        for(const opr of tartable){
-            if(!tit[opr]){
-                tit[opr] = index 
-                index += 1
-            }
-            trt.push(tit[opr])
-        }
-
-
-        return this.listequal(srt,trt)
     }
 
     Same(src,tar){
         if(!tar && !src) return true
-        // if(!tar || !src) return false
-        // console.log('src: ', src, 'tar: ', tar)
-
-        // let opr_table = {} 
         let i = 0
 
         //check length match
@@ -1573,7 +1313,6 @@ class ProofAssistant {
                 if(src[i].operands && tar[i].operands){
                     let j = 0
                     if(tar[i].operands.length != src[i].operands.length) return false
-                    // console.log(tar[i].operands, src[j].operands)
                     while(j < src[i].operands.length){
                         if(src[i].operands[j] != tar[i].operands[j]){
                             
@@ -1593,6 +1332,26 @@ class ProofAssistant {
 
     //--Tools--
     //these expression are generate by incrementing operator and generator similar looking expressions
+    
+    isBranch(opt){
+        if(opt.Opparam){
+            if(opt.Opparam[0]){
+                return true
+            }
+        }
+        return false 
+    }
+
+    cloneExp(exp){
+        let ret = this.genRule('!,@,'+this.ExpToString(exp)).rightexps
+        if(ret[0].operator == '#0') return []
+        return ret
+    }
+
+    deepClone(arr) {
+        return arr.map(innerArr => innerArr.slice());
+    }
+
     Get_all_operator(){
         let operator_table = []
         for(const exp of this.Exps){
@@ -1709,9 +1468,9 @@ class ProofAssistant {
         }
         return ret
     }
-    deepClone(arr) {
+    deepClone(arr){
         return arr.map(innerArr => innerArr.slice());
-      }
+    }
     sort_subexp(lst){
         let sortedlst = this.deepClone(lst)
         let i = 0 
@@ -1728,7 +1487,6 @@ class ProofAssistant {
             i+=1
         }
         return sortedlst
-    
     }
     
     genRule(rule){

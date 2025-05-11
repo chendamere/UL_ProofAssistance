@@ -81,7 +81,7 @@ export default class ProofStrategy {
             // console.log(tpexp[expi].length)
 
             console.log('--BEGIN PROVING FROM USER PROVIDED EXPRESSION--')
-            // console.log(tpexp[expi].length)
+            console.log(tpexp[expi])
 
             let ret = this.proveExps(tpexp[expi], p, q, debugging)
             if(ret != -1){
@@ -116,35 +116,45 @@ export default class ProofStrategy {
         }
     }
 
-    matchAndCheckExp(exps, end, debug = false){
-        let ret = []
+    //normalizes the first proof-step and use that table to convert all remaining 
+    normalizeProof(exps, table){
+        let srctable
+        let ret =[]
+        if(!table){
+            srctable = this.pf.Operands_normalize_exps( this.pf.cloneExp((this.pf.genRule('!,@'+exps[0]).rightexps)), {})[1]
+        }else[
+            srctable = {...table}
+        ]
+        for(const exp of exps){
+            let rexp = this.pf.ExpToString(this.pf.Operands_normalize_exps(this.pf.genRule('!,@'+exp).rightexps, this.pf.flipKeyandValue(srctable))[0])
+            ret.push(rexp)
+        }
+        // ret = [src].concat(ret)
+        return ret
+    }
+    matchAndCheckExp(exps, start, end, debug = false){
         // console.log(exps)
-        let endchecks = this.pf.genRule('!'+exps[exps.length-1]+'@'+end)
-        const nl = this.pf.Operands_normalize_exps(this.pf.cloneExp(endchecks.leftexps), {})[0]
-        const [nr, nrt] = this.pf.Operands_normalize_exps(this.pf.cloneExp(endchecks.rightexps), {})
-        // console.log(this.pf.ExpToString(nl),' =? ',this.pf.ExpToString(nr))
+        console.log('matchandecheck: ', exps[exps.length-1], end)
+        let srcend = this.pf.genRule('!,@'+exps[exps.length-1]).rightexps
+        let tarend = this.pf.genRule('!,@'+end).rightexps
+        const [nl, nlt] = this.pf.Operands_normalize_exps(this.pf.cloneExp(srcend), {})
+        const [nr, nrt] = this.pf.Operands_normalize_exps(this.pf.cloneExp(tarend), {})
 
         if(this.pf.Same(nl, nr)){
-            let table = {...nrt}
-            for(const exp of exps){
-                let rexp = this.pf.cloneExp(this.pf.genRule('!,@,'+exp).rightexps)
-                let nexp = this.pf.ExpToString(this.pf.Operands_normalize_exps(rexp, table)[0])
-                ret.push(nexp)
-            }
-            
-            return ret
+            let dict = this.pf.flipKeyandValue(this.pf.matchDictionaries(nlt, this.pf.flipKeyandValue(nrt)))
+            let retlist = this.normalizeProof(exps, dict)
+            return retlist
         }
-
-        
         return false
     }
     proveExps(exps, start, end, debug=false) { 
         // console.log('stop1')
 
         if(exps.length == 0){return -1}
-
-        const cexps = this.matchAndCheckExp(exps, end, debug)
-        console.log(cexps)
+        // console.log("exps: ", exps)
+        const cexps = this.matchAndCheckExp(exps,start, end, debug)
+        // const cexps = exps
+        // console.log("cexps: ", cexps)
         let prev=start;
         let next;
         let i = 0
@@ -153,7 +163,7 @@ export default class ProofStrategy {
             while(cexps[i]){
                 next = cexps[i]
                 let check = this.pf.Proving(prev, next, true)
-                if(check){
+                if(check != -1){
                     prev = next    
                     i+=1
                 }
@@ -190,32 +200,40 @@ export default class ProofStrategy {
         return ret1
     }
 
+    getStack(srctar, index, alt){
+        let tstack = []
+        let [srcoperator, taroperator] = srctar
+        const slicelst = this.expstack[index].slice(0,this.expstack[index].length)
+        // console.log("slicelst: ", )
+        for(const l of slicelst){
+            let r = this.replaceoperator(srcoperator,taroperator, l, alt)
+            if(r){
+                if(r.length==0){
+                    tstack.push(l)
+                }
+                tstack.push(r)
+            }
+        }
+        return tstack
+    }
     provefromstack(end, p, q, stackindex, alt, debug=false){
-        let i = stackindex
-        while ( i < this.expstack.length-1 && i < end){
-            if(i + this.expioffset>= end) break
+        let index = stackindex
+        while ( index < this.expstack.length-1 && index < end){
+            if(index + this.expioffset>= end) break
 
             //get the changing operator from beginning lines, if the changed lines are not same, then repeat the process with end line
-            let l = this.expstack[i][0]
+            let l = this.expstack[index][0]
             let tempr = this.pf.genRule('!'+p+'@'+l)
-            let x = this.getchangeoperator(tempr)
+            let pair_of_operators = this.getchangeoperator(tempr)
 
-            let tstack = []
-            const slicelst = this.expstack[i].slice(0,this.expstack[i].length)
-            for(const l of slicelst){
-                let r = this.replaceoperator(x[0],x[1], l, alt)
-                if(r){
-                    if(r.length==0){
-                        tstack.push(l)
-                    }
-                    tstack.push(r)
-                }
-            }
+            let tstack = this.getStack(pair_of_operators, index, alt)
+            // console.log("tstack: ", tstack, index)
+
             let ret= this.proveExps(tstack,p, q,debug)
             if(ret != -1){
-                return [tstack, i]
+                return [tstack, index]
             }
-            i+=1
+            index+=1
     
         }
         return -1
@@ -238,7 +256,7 @@ export default class ProofStrategy {
                             op.operands = op.operands.slice(0,op.operands.length-1)
                         }
                     }
-                    else if(this.pf.binaryOperators.includes(tar) && this.pf.unaryOperators.includes(src)){
+                    else if(this.pf.unaryOperators.includes(src) && this.pf.binaryOperators.includes(tar) ){
                         //add the next operand to operands
                         op.operands.push(op.operands[op.operands.length]+1)
                     }

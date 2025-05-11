@@ -148,11 +148,14 @@ proof:  \\
  \[,m  \Pe n,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,},  \Rq ,  \Bb{i  \Pe j}{,m  \Pe n, \Tc c_1,}{,m  \Pe n, \Tc c_2,}, \]
  \begin{math} 
  \Rq,  \Bb{ m  \Pe n}{,}{,  \Or,},  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,},
+ \Rq,  \Bb{ m  \Pe n}{,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,}, }{,  \Or,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,}, }, 
  \Rq,  \Bb{ m  \Pe n}{,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,}, }{,  \Or,}, 
  \Rq,  \Bb{ m  \Pe n}{,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,}, }{,  \Bb{i  \Pe j}{,}{,},  \Or,}, 
  \Rq,  \Bb{ m  \Pe n}{,  \Bb{i  \Pe j}{, \Tc c_1,}{, \Tc c_2,}, }{,  \Bb{i  \Pe j}{,  \Or,}{,  \Or,},},  
- \Rq,  \Bb{ i  \Pe j}{,m  \Pe n, \Tc c_1,}{,  \Bb{m  \Pe n}{, \Tc c_2,}{,  \Or,},}, 
- \Rq,  \Bb{i  \Pe j}{,m  \Pe n, \Tc c_1,}{,m  \Pe n, \Tc c_2,},
+ \Rq,  \Bb{ i  \Pe j}{,  \Bb{,m  \Pe n,} {, \Tc c_1,}{,  \Or,},}{,  \Bb{m  \Pe n}{, \Tc c_2,}{,  \Or,},}, 
+ \Rq,  \Bb{ i  \Pe j}{,  \Bb{,m  \Pe n,} {, \Tc c_1,}{,  \Or,},}{,  \Bb{m  \Pe n}{, \Tc c_2,}{,  \Or,},}, 
+ \Rq,  \Bb{ i  \Pe j}{,  m  \Pe n , \Tc c_1,}{,  \Bb{m  \Pe n}{, \Tc c_2,}{,  \Or,},}, 
+ \Rq,  \Bb{ i  \Pe j}{,  m  \Pe n , \Tc c_1,}{,  m  \Pe n , \Tc c_2,}, 
  \end{math}
 
 
@@ -177,19 +180,12 @@ proof:  \\
 
  \subsection{Propositions and operator}
  \[, i  \Pe j,  \Ot m,  \Rq ,  \Ot m, i  \Pe j, \]
-
-
-
-
-
-
-proof: \ \
+proof: 
  \begin{math} 
- , i  \Pe j,  \Ot m, \ \ \ \
- \Rq,  \Bb{i  \Pe j}{,}{, \Or,},  \Ot m,  \ \ \ \ \ \
- \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Or,},  \ \ \ \ \ \
- \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Ot m,  \Or,},  \ \ \ \ \ \
- \Rq,  \Ot m,  \Bb{i  \Pe j}{,}{, \Or,},  \ \ \ \ \ \
+ \Rq,  \Bb{i  \Pe j}{,}{, \Or,},  \Ot m, 
+ \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Or,}, 
+ \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Ot m,  \Or,}, 
+ \Rq,  \Ot m,  \Bb{i  \Pe j}{,}{, \Or,}, 
  \Rq,  \Ot m, i  \Pe j, 
  \end{math}
 
@@ -197,6 +193,14 @@ proof: \ \
  \[, i  \Pe j,  \Og m,  \Rq ,  \Og m, i  \Pe j, \]
 
  \[, i  \Pe j, m  \Oc n,  \Rq , m  \Oc n, i  \Pe j, \]
+ \begin{math} 
+  \Rq,  \Bb{i  \Pe j}{,}{, \Or,},  \Ot m, 
+  \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Or,}, 
+  \Rq,  \Bb{i  \Pe j}{,  \Ot m,}{, \Ot m,  \Or,}, 
+  \Rq,  \Ot m,  \Bb{i  \Pe j}{,}{, \Or,}, 
+  \Rq,  \Ot m, i  \Pe j, 
+  \end{math}
+  
  \[, i  \Pe j, m  \Od n,  \Rq , m  \Od n, i  \Pe j, \]
  \[, i  \Pe j, m  \Ob n,  \Rq , m  \Ob n, i  \Pe j, \]
 
