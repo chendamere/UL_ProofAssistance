@@ -381,8 +381,10 @@ class LatexParser extends Parser {
         let order = 1
         let i = 0
         let ret = line
+        // console.log(line)
         while(i<line.length) {
 
+            if(!line) continue
             //go to next delimeter if these character
             if(line[i] == '#' || line [i] == '@' || line[i] == '!' || line[i] == ','){
                 i += 1
@@ -391,6 +393,7 @@ class LatexParser extends Parser {
                 }
                 
             }
+            if(!line[i]) continue
 
             //match start
             if (line[i].match(start)){

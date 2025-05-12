@@ -219,7 +219,7 @@ class ProofAssistant {
         let sublist = []
         let check
         while(i < exp.length){
-            console.log(i)
+            // console.log(i)
             let sub = exp.slice(i,exp.length)
             let checkbr = this.getBr(sub)
             if(checkbr.index != -1){
@@ -1159,33 +1159,40 @@ class ProofAssistant {
     generateTableCombinations(keys, lists, sum) {
         const results = [];
         const keyNames = Object.keys(keys);
-        const extendedLists = [...lists, []];
+        const extendedLists = [...lists];
 
         function helper(index, currentTable, usedIndices, totalLength) {
             if (index === keyNames.length) {
-            if (totalLength === sum) {
-                results.push({ ...currentTable });
-            }
-            return;
+                if (totalLength === sum) {
+                    results.push({ ...currentTable });
+                }
+                return;
             }
 
             const key = keyNames[index];
 
             for (let i = 0; i < extendedLists.length; i++) {
-            if (usedIndices.has(i)) continue;
+                if (usedIndices.has(i)) continue;
 
-            const list = extendedLists[i];
-            const newLength = totalLength + list.length;
+                const list = extendedLists[i][0];
 
-            if (newLength > sum) continue;
+                const newLength = totalLength + list.length;
+                // console.log(list,newLength)
 
-            currentTable[key] = list;
-            usedIndices.add(i);
+                if (newLength > sum) continue;
 
-            helper(index + 1, currentTable, usedIndices, newLength);
+                if(list){
+                    currentTable[key] = list;
+                }
+                else{
+                    currentTable[key] = [];
+                }
+                usedIndices.add(i);
 
-            usedIndices.delete(i);
-            delete currentTable[key];
+                helper(index + 1, currentTable, usedIndices, newLength);
+
+                usedIndices.delete(i);
+                delete currentTable[key];
             }
         }
 
@@ -1195,39 +1202,93 @@ class ProofAssistant {
 
     CheckWithTable(srcsub, tarexp, table, combs, allfiltersub){
         
-        if(combs && allfiltersub){
-            let cvPosition = this.getCvPositions(tarexp)
-            for(const comb of combs){
-                let ttable = {... table}
-                for(let i = 0; i < cvPosition.length; i ++ ){
-                    for(const len of comb){
-                        let table_comb = this.generateTableCombinations(table, allfiltersub, len)
+        // let cvPosition = this.getCvPositions(tarexp)
+        for(const comb of combs){
 
-                        for(const sub of allfiltersub){
-                            // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
-                            //     // console.log('replr: ',comb, cvPosition, sub[0],sub[1])
-                            //     console.log('       ', this.ExpToString(sub[0]), cvPosition[i][1], sub[1], this.ExpToString(srcsub[0]),srcsub[1])
-
-                            // }
-                            //if length matches the length required, and if index matches subexp index
-                            if(sub[0].length == len){
-                                
-                                ttable[cvPosition[i][0]] = this.cloneExp(sub[0])
-                                break
-                            }
-                        }
-                    }
-                }
-                let repltar = this.replacecvexp(ttable, this.cloneExp(tarexp))
-
-                // if(this.ExpToString(srcexp).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
-                //     console.log('replr: ', this.ExpToString(repltar),comb, cvPosition)
+            for(const len of comb){
+                // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                //     console.log('!')
                 // }
-                if(this.ObrMatchCbr(repltar, srcsub[0])){
-                    return ttable
-                } 
+                let table_comb = this.generateTableCombinations(table, allfiltersub, len)
+                // for(const table of table_comb){
+                //     console.log(table)
+
+                // }
+                // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                //     console.log('repl: ',this.ExpToString(srcsub[0]),'->', this.ExpToString(tarexp), table_comb, table, len)
+                    // for(const x of allfiltersub){
+                    //     console.log('x: ', this.ExpToString(x[0]))
+                    // }
+
+                // }
+                // console.log(this.ExpToString(tarexp))
+
+                for(const table of table_comb){
+                    // if(this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                    //     console.log(this.ExpToString(srcsub[0]))
+
+                    // }
+                    // console.log(table)
+                    
+                    
+
+                    let repltar = this.replacecvexp({...table}, this.cloneExp(tarexp))
+                    // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+                    //     console.log('repl: ', this.ExpToString(repltar))
+
+                    // }
+                    if(this.ObrMatchCbr(repltar, srcsub[0])){
+                        return table
+                    }     
+                }
+                    
             }
+            
+            // let ttable = {... table}
+            // for(let i = 0; i < cvPosition.length; i ++ ){
+            //     for(const len of comb){
+            //         let table_comb = this.generateTableCombinations(table, allfiltersub, len)
+            //         // for(const table of table_comb){
+            //         //     console.log(table)
+
+            //         // }
+            //         for(const table of table_comb){
+            //             let repltar = this.replacecvexp({...table}, this.cloneExp(tarexp))
+            //             if(this.ExpToString(srcsub).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+            //                 console.log('repl: ', this.ExpToString(repltar))
+
+            //             }
+            //             if(this.ObrMatchCbr(repltar, srcsub[0])){
+            //                 return table
+            //             }     
+            //         }
+                    
+
+            //         // for(const sub of allfiltersub){
+            //         //     // if(this.ExpToString(srcsub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+            //         //     //     // console.log('replr: ',comb, cvPosition, sub[0],sub[1])
+            //         //     //     console.log('       ', this.ExpToString(sub[0]), cvPosition[i][1], sub[1], this.ExpToString(srcsub[0]),srcsub[1])
+
+            //         //     // }
+            //         //     //if length matches the length required, and if index matches subexp index
+            //         //     if(sub[0].length == len){
+                            
+            //         //         ttable[cvPosition[i][0]] = this.cloneExp(sub[0])
+            //         //         break
+            //         //     }
+            //         // }
+            //     }
+            // }
+            // let repltar = this.replacecvexp(ttable, this.cloneExp(tarexp))
+
+            // if(this.ExpToString(srcexp).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+            //     console.log('replr: ', this.ExpToString(repltar),comb, cvPosition)
+            // }
+            // if(this.ObrMatchCbr(repltar, srcsub[0])){
+            //     return ttable
+            // } 
         }
+        
         return false
     }
 
@@ -1257,7 +1318,8 @@ class ProofAssistant {
         return false
     }
 
-    checkcv(allsub, sub, tarexp, table){
+    checkcv(allsub, sub, tar, table){
+        let tarexp = this.cloneExp(tar)
         let tablelen = Object.keys(this.getcv({},tarexp)).length
         let nonCVlen = this.NonCvOptCount(tarexp)
         let listofsum = this.generateCombinations(tablelen, sub[0].length - nonCVlen)
@@ -1267,9 +1329,9 @@ class ProofAssistant {
 
         if(!table){
             let rettable = this.CheckWithTable(sub, tarexp, this.getcv({},tarexp), listofsum, allfiltersub)
-            if(this.ExpToString(sub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
-                console.log(this.ExpToString(sub[0]),'<>',this.ExpToString(tarexp),listofsum, rettable)
-            }
+            // if(this.ExpToString(sub[0]).includes(', #102 $0 $0 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,') && this.ExpToString(tarexp).includes(', #102 $0 $0 , #13 1 ,')){
+            //     console.log(this.ExpToString(sub[0]),'<>',this.ExpToString(tarexp),listofsum, rettable)
+            // }
             if(rettable) return rettable
         }
         

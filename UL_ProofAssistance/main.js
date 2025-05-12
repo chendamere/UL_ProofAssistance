@@ -13,6 +13,24 @@ let [tstatements,allexps] = fs.ParseExpressionsFromFile('./theorems/');
 
 
 let pf = new ProofAssistant(allrules, latexparser,[])
+
+// for(const chapter of allexps){
+//     for(const list_of_exp of chapter){
+//         for(const exp of list_of_exp){
+//             let pexp =  pf.ExpToString(latexparser.Parse('!,@'+exp).rightexps)
+//             if(pexp){
+//                 if(pexp.includes(' #0 ')){
+//                     continue
+//                 }else{
+//                     console.log('exp:',pexp)
+
+//                 }
+//             }
+//         }
+//     }
+// }
+// console.log(allexps)
+
 let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 
 // console.log(allexps)
@@ -22,8 +40,8 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // for(const r of assumedAxiom){
 //     console.log(pf.RuleToString(r))
 // }
-// ps.ProveChapter(0)
-// ps.ProveChapter(1)
+ps.ProveChapter(0)
+ps.ProveChapter(1)
 
 // let test = latexparser.Parse('!, #11 , @ , #3 2, ')
 // console.log(pf.ExpToString(test.leftexps), pf.ExpToString(test.rightexps))
@@ -36,7 +54,7 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // let srcexp = ind.leftexps
 // let tarexp = ind.rightexps
 // console.log(pf.checkcv2(srcexp , tarexp ))
-p()
+// p()
 // CombineTest()
 // f()
 // console.log(pf.generateLowerCombinations([2,2,2]))
