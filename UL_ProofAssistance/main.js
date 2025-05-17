@@ -40,8 +40,8 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // for(const r of assumedAxiom){
 //     console.log(pf.RuleToString(r))
 // }
-// ps.ProveChapter(0)
-// ps.ProveChapter(1)
+ps.ProveChapter(0)
+ps.ProveChapter(1)
 
 // let test = latexparser.Parse('!, #11 , @ , #3 2, ')
 // console.log(pf.ExpToString(test.leftexps), pf.ExpToString(test.rightexps))
@@ -54,20 +54,19 @@ let ps = new ProofStrategy(pf, tstatements.slice(0,2), allexps)
 // let srcexp = ind.leftexps
 // let tarexp = ind.rightexps
 // console.log(pf.checkcv2(srcexp , tarexp ))
-p()
+// p()
 // CombineTest()
 // f()
 // console.log(pf.generateLowerCombinations([2,2,2]))
 
 // console.log(pf.ObrMatchCbr(srcexp, tarexp))
 
-// let exp =  latexparser.Parse('!, @ , #100 $0 $1 #15 1 2 , #11 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 , ').rightexps
+// let exp =  latexparser.Parse('!, @ , #100 $1 $1 #15 1 2 , #100 $1 $1 #15 3 4 , #11 , #11 , #100 $1 $1 #15 3 4 , #13 5 , #13 6 ,').rightexps
 
 // let allsub = pf.getsub(exp)
 // let l1 = allsub[0]
 // let l2 = allsub[1]
 // console.log('-----l1----')
-
 // for(const sub of l1){
 //     console.log(sub[1], pf.ExpToString(sub[0]))
 // }
@@ -75,6 +74,7 @@ p()
 // for(const sub of l2){
 //     console.log(sub[1], pf.ExpToString(sub[0]))
 // }
+// console.log(l2.length+l1.length)
 
 function CombineTest(){
     for(const test of indtests.slice(indtests.length-1, indtests.length)){
@@ -130,6 +130,10 @@ function f() {
 }
 
 function p(){
+    for(const s of tstatements){
+        pf.allrules = pf.allrules.concat(s)
+
+    }
     for(const test of indtests.slice(indtests.length-1, indtests.length)){
         let ind = latexparser.Parse(test[1])
         console.log(pf.Proving(pf.ExpToString(ind.leftexps),pf.ExpToString(ind.rightexps), true))
