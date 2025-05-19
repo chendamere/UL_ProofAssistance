@@ -18,6 +18,8 @@ class ProofAssistant {
         this.unaryOperators = this.parser.unaryOperators
         this.binaryOperators = this.parser.binaryOperators
         this.BrOperators =  this.parser.branch
+
+        this.rulestack = []
         this.AddSpacetoExp()
     }
 
@@ -330,7 +332,7 @@ class ProofAssistant {
 
         const serialize = (index, list) =>
             index + '|' + JSON.stringify(list.map(dict =>
-            Object.fromEntries(Object.entries(dict).sort())
+                Object.fromEntries(Object.entries(dict).sort())
             ));
 
         return data.filter(([dictList, index]) => {
@@ -354,8 +356,7 @@ class ProofAssistant {
         srcexps = this.addEmpty(srcexps)
         srcexps = this.sort_subexp(srcexps)
 
-        let lendiff = Math.abs(nsrc.length - tar.length)
-        let lenRules = this.FilterAxioms(this.allrules, lendiff)
+        
         let cvRules = this.FilterAxioms(this.allrules, this.parser.cv)
         for(const rule of cvRules){
             // if(debug){
@@ -372,17 +373,36 @@ class ProofAssistant {
 
         //filter the axioms by having the same difference in length as the statement
 
-        for(const rule of lenRules){
+        let rulestack = this.rulestack
+        
+        for(const r of rulestack){
             for(const sub of srcexps){
-
-                if(this.CheckFromRules(rule, sub, nsrc, tar, debug)){
+                
+                if(this.CheckFromRules(r, sub, nsrc, tar, debug)){
                     if(debug){
-                        console.log('   Proving --> CheckFromRules --> TRUE!   rule: ', this.RuleToString(rule), 'sub: ', this.ExpToString(sub[0]),'ncsrc: ', this.ExpToString(nsrc),)                    
+                        console.log('   Proving --> CheckFromRules --> RuleStack --> TRUE!   rule: ', this.RuleToString(r), 'sub: ', this.ExpToString(sub[0]),'ncsrc: ', this.ExpToString(nsrc),)                    
                     } 
                     return true
                 }
             }
+        }
+        let lendiff = Math.abs(nsrc.length - tar.length)
+        let lenRules = this.FilterAxioms(this.allrules, lendiff)
+        console.log('       CheckFromRules Operations: ',lenRules.length,' * ',srcexps.length, '=', srcexps.length*lenRules.length)
+        for(const rule of lenRules){
+            //filter sub based on rule
+            // let fsub = ([...srcexps]).map( exp => ((exp[0].length == 0 ? 1 : exp[0].length)==rule.leftexps.length || (exp[0].length == 0 ? 1 : exp[0].length) === rule.rightexps.length) ? exp : null).filter(item => item !== null)
+            // console.log(fsub, srcexps.length)
+            for(const sub of srcexps){
+                if(this.CheckFromRules(rule, sub, nsrc, tar, debug)){
+                    if(debug){
+                        console.log('   Proving --> CheckFromRules --> TRUE!   rule: ', this.RuleToString(rule), 'sub: ', this.ExpToString(sub[0]),'ncsrc: ', this.ExpToString(nsrc),)                    
+                    } 
+                    this.rulestack.push(rule)
 
+                    return true
+                }
+            }
         }
         return false
     }
@@ -625,10 +645,6 @@ class ProofAssistant {
         //if src has branch
         if(srcbr.index != -1 && subbrcheck.index != -1){
             //if sub has branch
-            // let offset = srcbr.index        
-
-            // let offsetbr = this.getBr(src.slice(offset, src.length))
-
             let range = this.getBranchEnd(src, srcbr)
             let srcbranchexp = src.slice(srcbr.index, range)
 
@@ -1061,28 +1077,6 @@ class ProofAssistant {
         return count
     }
 
-    generateCombinations(len, sum) {
-        const result = [];
-    
-        function backtrack(current, remainingSum) {
-            if (current.length === len) {
-                if (remainingSum === 0) {
-                    result.push([...current]);
-                }
-                return;
-            }
-    
-            for (let i = 0; i <= remainingSum; i++) {
-                current.push(i);
-                backtrack(current, remainingSum - i);
-                current.pop();
-            }
-        }
-    
-        backtrack([], sum);
-        return result;
-    }
-
     FilterExpLen(len, allsub){
         let allfiltersub = []
         for(const sub of allsub){
@@ -1100,36 +1094,6 @@ class ProofAssistant {
             listoflen.push(lists.length)
         }
         return listoflen
-    }
-
-    ObrMatchCbr(src, tar){
-        // console.log(srcbr.index,tarbr.index)
-        if(src.length != tar.length) return false
-        let i = 0
-        while(i < src.length) {
-            
-            if(src[i].Opparam && tar[i].Opparam && src[i].Opparam.length !=0 && tar[i].Opparam.length != 0){
-                if(src[i].Opparam[1] != tar[i].Opparam[1] || tar[i].Opparam[1] != src[i].Opparam[2])
-                    return false
-                let srcbranch = src[i].Opparam[0]
-                let tarbranch = tar[i].Opparam[0]
-                if(srcbranch != tarbranch){
-                    if((srcbranch != '#101' && srcbranch != '#102') && tarbranch != '#100'){
-                        return false
-                    }
-                    if(srcbranch == '#102' && tarbranch == '#101'){
-                        return false
-                    }
-                }
-            }else{
-                if(!this.Same([src[i]], [tar[i]])){
-
-                    return false
-                }
-            }
-            i += 1
-        }
-        return true
     }
 
     removeDuplicateDicts(dictList) {
@@ -1151,25 +1115,20 @@ class ProofAssistant {
         });
     }
 
-    generateTableCombinations(listofCV, lists, max) {
+    generateTableCombinations(listofCV, lists, max, len, srclen) {
         const results = [];
         const names = {};
         for (let i = 0; i < listofCV.length; i++) {
             names[parseInt(listofCV[i][0])] = '';
         }
         const keyNames = Object.keys(names)
-        // console.log(listofCV.length)
-        // for(const l of lists){
-        //     console.log(l[0], l[1])
-        // }
+
         const extendedLists = [...lists];
 
         function findMatchingLists(num, index, list, offset) {
             let fl = list.filter(([charNum,]) => charNum === num)
             for(const f of fl){
                 if(index == offset + f[1]) {
-                    // console.log('fl: ', list, num)
-
                     return fl.length
                 }
             }
@@ -1177,20 +1136,19 @@ class ProofAssistant {
         }
 
         function helper(index, currentTable, usedIndices, totalLength, offset=0) {
-            // console.log(offset)
             if (index === keyNames.length) {
                 
                 
                 if (totalLength === max ) {
-                    // let sum = 0
-                    // for(const cv of listofCV){
-                    //     if(currentTable[cv[0]]){
-                    //         sum += currentTable[cv[0]].length
-                    //     }
-                    // }   
-                    // if(totalLength===sum){
+                    let sum = 0
+                    for(const cv of listofCV){
+                        if(currentTable[cv[0]]){
+                            sum += currentTable[cv[0]].length
+                        }
+                    }   
+                    if(srclen===len+sum){
                         results.push({ ...currentTable });
-                    // }
+                    }
                 }
                 return;
             }
@@ -1235,18 +1193,17 @@ class ProofAssistant {
     }
 
 
-    genCVTable(allfiltersub, listofCVOpr, len){
+    genCVTable(allfiltersub, listofCVOpr, len, noncv, srclen){
         let i = len    
         let table_comb = []
         while(i > 0){
-            let tables = this.generateTableCombinations([...listofCVOpr], [...allfiltersub], i)            
+            let tables = this.generateTableCombinations([...listofCVOpr], [...allfiltersub], i, noncv, srclen)            
             table_comb = table_comb.concat(tables)
             i -= 1
         }
         return table_comb
     }
 
-    //high processing time
     CheckTable(srcsub, tarexp, table){
         let repltar =  this.cloneExp(this.replacecvexp({...table}, this.cloneExp(tarexp)))
 
@@ -1255,6 +1212,8 @@ class ProofAssistant {
         }
         return false
     }
+
+    //high processing time
     CheckAllTables(srcsub, tarexp, table_comb, debug=false){
         let filtered_tables = []
         for(const table of table_comb){
@@ -1313,7 +1272,6 @@ class ProofAssistant {
         let listofCVOpr = this.getlistofCVOpr(tarexp)
         let nonCVlen = this.NonCvOptCount(tarexp)
         let len = src.length - nonCVlen
-        let tlen = Object.keys(this.getcv({},tarexp)).length
         let debug = false
         if(len < 0){
             return false
@@ -1321,7 +1279,8 @@ class ProofAssistant {
 
         let allsubsub = this.getsub(src)
         let allfiltersub = this.FilterExpLen(len, this.removeDuplicateDicts(allsubsub[0].concat(allsubsub[1])))
-        let filtered_tables = this.genCVTable(allfiltersub, listofCVOpr, len)
+        let filtered_tables = this.genCVTable(allfiltersub, listofCVOpr, len, nonCVlen, src.length)
+        // console.log('   filtered_table', filtered_tables.length)
         let all_rettable = this.CheckAllTables(src, tarexp, filtered_tables, debug)
         if(all_rettable.length > 0) return all_rettable
 

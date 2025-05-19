@@ -210,10 +210,12 @@ export default class ProofStrategy {
             if(r){
                 if(r.length==0){
                     tstack.push(l)
+                }else{
+                    tstack.push(r)
                 }
-                tstack.push(r)
             }
         }
+        console.log(tstack)
         return tstack
     }
     provefromstack(end, p, q, stackindex, alt, debug=false){
@@ -258,14 +260,14 @@ export default class ProofStrategy {
                     }
                     else if(this.pf.unaryOperators.includes(src) && this.pf.binaryOperators.includes(tar) ){
                         //add the next operand to operands
-                        op.operands.push(op.operands[op.operands.length]+1)
+                        op.operands.push((parseInt(op.operands[op.operands.length-1])+1).toString())
                     }
-                    let ret = this.pf.ExpToString(dummystatement.rightexps)
-                    return ret               
+                    
                 }
             }
         }
-        return l
+        let ret = this.pf.ExpToString(dummystatement.rightexps)
+        return ret  
     }
     getchangeoperator(fakerule) {
         //look for similar statements, defined here as statements with only 1 different operation (should do the job)
